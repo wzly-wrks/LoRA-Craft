@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, FolderOpen, PlusIcon, Settings, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Link } from "wouter";
 import type { Workspace, Dataset } from "@shared/schema";
@@ -43,8 +42,8 @@ export function Sidebar({
 
   return (
     <aside
-      className="h-full flex flex-col sidebar-glass transition-smooth"
-      style={{ width }}
+      className="h-full flex flex-col sidebar-glass transition-smooth overflow-hidden"
+      style={{ width, minWidth: 180 }}
       data-testid="sidebar"
     >
       <div className="p-5">
@@ -69,7 +68,7 @@ export function Sidebar({
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 mt-7 transition-smooth">
+      <div className="flex-1 mt-7 overflow-y-auto min-h-0">
         <nav className="px-3.5 flex flex-col gap-1" data-testid="workspace-list">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
@@ -166,7 +165,7 @@ export function Sidebar({
             })
           )}
         </nav>
-      </ScrollArea>
+      </div>
 
       <div 
         className="p-3.5 flex flex-col gap-1 transition-smooth"

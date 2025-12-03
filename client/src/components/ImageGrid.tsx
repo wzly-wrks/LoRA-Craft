@@ -66,7 +66,7 @@ export function ImageGrid({
 
   return (
     <div
-      className="flex-1 flex flex-col overflow-hidden surface-1"
+      className="h-full flex flex-col surface-1"
       data-testid="image-grid"
     >
       {images.length === 0 ? (
@@ -74,7 +74,7 @@ export function ImageGrid({
           <UploadDropzone datasetId={datasetId} onUploadComplete={onUploadComplete} />
         </div>
       ) : (
-        <div className="flex-1 overflow-auto p-6 animate-fade-in">
+        <div className="p-6 animate-fade-in">
           <div className="flex flex-wrap gap-4">
             {images.map((image) => (
               <ImageCard
