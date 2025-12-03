@@ -15,7 +15,8 @@ interface StorageService {
 
 const cloudStorageService: StorageService = {
   generateStorageKey: (prefix, filename) => objectStorageService.generateStorageKey(prefix, filename),
-  uploadBuffer: (buffer, key, type) => objectStorageService.uploadBuffer(buffer, key, type),
+  uploadBuffer: (buffer, key, type) =>
+    objectStorageService.uploadBuffer(buffer, key, type ?? "application/octet-stream"),
   getBuffer: async (key) => {
     const file = await objectStorageService.getFile(key);
     const [buffer] = await file.download();
