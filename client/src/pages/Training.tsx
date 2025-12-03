@@ -162,20 +162,20 @@ export default function TrainingPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, jobId: string) => {
     switch (status) {
       case 'starting':
-        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Starting</Badge>;
+        return <Badge variant="secondary" data-testid={`badge-status-${jobId}`}><Clock className="w-3 h-3 mr-1" />Starting</Badge>;
       case 'processing':
-        return <Badge style={{ backgroundColor: "#3b82f6" }}><Loader2 className="w-3 h-3 mr-1 animate-spin" />Processing</Badge>;
+        return <Badge style={{ backgroundColor: "#3b82f6" }} data-testid={`badge-status-${jobId}`}><Loader2 className="w-3 h-3 mr-1 animate-spin" />Processing</Badge>;
       case 'succeeded':
-        return <Badge style={{ backgroundColor: "#22c55e" }}><CheckCircle2 className="w-3 h-3 mr-1" />Succeeded</Badge>;
+        return <Badge style={{ backgroundColor: "#22c55e" }} data-testid={`badge-status-${jobId}`}><CheckCircle2 className="w-3 h-3 mr-1" />Succeeded</Badge>;
       case 'failed':
-        return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" />Failed</Badge>;
+        return <Badge variant="destructive" data-testid={`badge-status-${jobId}`}><XCircle className="w-3 h-3 mr-1" />Failed</Badge>;
       case 'canceled':
-        return <Badge variant="outline"><AlertCircle className="w-3 h-3 mr-1" />Canceled</Badge>;
+        return <Badge variant="outline" data-testid={`badge-status-${jobId}`}><AlertCircle className="w-3 h-3 mr-1" />Canceled</Badge>;
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return <Badge variant="secondary" data-testid={`badge-status-${jobId}`}>{status}</Badge>;
     }
   };
 
@@ -293,7 +293,7 @@ export default function TrainingPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-neutral-200">Training Steps</Label>
-                    <span className="text-sm text-neutral-400">{steps}</span>
+                    <span className="text-sm text-neutral-400" data-testid="text-steps-value">{steps}</span>
                   </div>
                   <Slider
                     value={[steps]}
@@ -312,7 +312,7 @@ export default function TrainingPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label className="text-neutral-200">LoRA Rank</Label>
-                    <span className="text-sm text-neutral-400">{loraRank}</span>
+                    <span className="text-sm text-neutral-400" data-testid="text-lora-rank-value">{loraRank}</span>
                   </div>
                   <Slider
                     value={[loraRank]}
@@ -416,15 +416,15 @@ export default function TrainingPage() {
             </CardHeader>
             <CardContent>
               {loadingTrainings && trainings.length === 0 ? (
-                <div className="flex items-center justify-center py-8">
+                <div className="flex items-center justify-center py-8" data-testid="loading-trainings">
                   <Loader2 className="w-6 h-6 animate-spin text-neutral-400" />
                 </div>
               ) : trainings.length === 0 ? (
-                <div className="text-center py-8 text-neutral-500">
+                <div className="text-center py-8 text-neutral-500" data-testid="empty-trainings">
                   No training jobs yet. Start a training above to see it here.
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-4" data-testid="trainings-list">
                   {trainings.map((job) => (
                     <div
                       key={job.id}
@@ -434,20 +434,20 @@ export default function TrainingPage() {
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          {getStatusBadge(job.status)}
-                          <span className="text-sm text-neutral-400 truncate">
+                          {getStatusBadge(job.status, job.id)}
+                          <span className="text-sm text-neutral-400 truncate" data-testid={`text-job-id-${job.id}`}>
                             {job.id}
                           </span>
                         </div>
-                        <div className="text-xs text-neutral-500">
+                        <div className="text-xs text-neutral-500" data-testid={`text-job-dates-${job.id}`}>
                           Started: {formatDate(job.createdAt)}
                           {job.completedAt && ` | Completed: ${formatDate(job.completedAt)}`}
                         </div>
                         {job.error && (
-                          <p className="text-xs text-red-400 mt-1 truncate">{job.error}</p>
+                          <p className="text-xs text-red-400 mt-1 truncate" data-testid={`text-job-error-${job.id}`}>{job.error}</p>
                         )}
                         {job.output?.weights && (
-                          <p className="text-xs text-green-400 mt-1">
+                          <p className="text-xs text-green-400 mt-1" data-testid={`text-job-weights-${job.id}`}>
                             Weights: {job.output.weights}
                           </p>
                         )}
