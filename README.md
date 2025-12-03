@@ -115,6 +115,22 @@ LoRA Craft uses the Reddit API to allow users to search for reference images wit
 4. **Manual Image Selection**: Users review search results and manually select which images to add to their dataset
 5. **No Automated Scraping**: The app never performs bulk downloads or automated content collection
 
+### Reddit API Usage Summary
+
+LoRA Craft's Reddit integration is intentionally limited and fully compliant with Reddit's API policies:
+
+| Policy | Implementation |
+|--------|----------------|
+| **No scraping** | All requests go through the official API (`oauth.reddit.com`) with OAuth2 — no HTML parsing |
+| **Public data only** | Client Credentials flow cannot access private data or user accounts |
+| **No auto-downloads** | Users must manually select every image they want to save |
+| **Metadata only** | Only returns post metadata and image URLs — no Reddit content is stored, mirrored, or redistributed |
+| **User-controlled subreddits** | Users enter subreddit names manually in the UI — no preset or forced subreddits |
+| **No bulk crawling** | All searches are scoped to exactly what the user enters — no mass subreddit iteration |
+| **Rate limit respect** | 60 req/min enforced with built-in rate-limit handler and graceful error messages |
+
+These safeguards ensure LoRA Craft remains fully compliant with Reddit's API Terms of Service while providing a safe, user-driven way to find reference images.
+
 ### OAuth2 Implementation
 
 ```
