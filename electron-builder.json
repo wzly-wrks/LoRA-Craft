@@ -1,0 +1,59 @@
+{
+  "appId": "com.loracraft.app",
+  "productName": "LoRA Craft",
+  "directories": {
+    "output": "dist-electron",
+    "buildResources": "build-resources"
+  },
+  "files": [
+    "dist/**/*",
+    "electron-dist/**/*",
+    "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "dist-server",
+      "to": "server",
+      "filter": ["**/*"]
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "build-resources/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "installerIcon": "build-resources/icon.ico",
+    "uninstallerIcon": "build-resources/icon.ico",
+    "installerHeaderIcon": "build-resources/icon.ico",
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "LoRA Craft"
+  },
+  "mac": {
+    "target": [
+      {
+        "target": "dmg",
+        "arch": ["x64", "arm64"]
+      }
+    ],
+    "icon": "build-resources/icon.icns",
+    "category": "public.app-category.graphics-design"
+  },
+  "linux": {
+    "target": [
+      {
+        "target": "AppImage",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "build-resources/icon.png",
+    "category": "Graphics"
+  }
+}

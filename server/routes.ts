@@ -5,6 +5,7 @@ import { createHash } from "crypto";
 import { storage } from "./storage";
 import { objectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { generateCaption, generateTags } from "./captioning";
+import { registerSettingsRoutes } from "./settingsRoutes";
 import {
   insertWorkspaceSchema,
   insertDatasetSchema,
@@ -587,6 +588,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to resize image" });
     }
   });
+
+  registerSettingsRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

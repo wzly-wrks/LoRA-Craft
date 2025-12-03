@@ -220,3 +220,49 @@ Preferred communication style: Simple, everyday language.
 **tsx**: Development TypeScript execution
 - Direct TS execution without compilation step
 - Used in `dev` script for hot reloading
+
+## Desktop Application Architecture (Electron)
+
+### Dual-Mode Architecture
+The application supports both web (cloud-based) and desktop (local) deployments:
+
+**Web Mode** (default):
+- PostgreSQL database via Neon
+- Google Cloud Storage for files
+- Deployed as web application
+
+**Desktop Mode** (Electron):
+- SQLite database for local storage (`server/localDatabase.ts`)
+- Local filesystem for images (`server/localFileStorage.ts`)
+- Packaged as Windows executable with installer
+
+### Electron Configuration
+- **Main Process**: `electron/main.ts` - Window management, IPC handlers, server process management
+- **Preload Script**: `electron/preload.ts` - Secure context bridge for renderer
+- **Build Config**: `electron-builder.json` - Windows NSIS installer configuration
+
+### Settings Management
+- **Electron Store**: Persistent settings storage using `electron-store`
+- **Settings API**: `/api/settings` endpoints for GET/PATCH operations
+- **Settings UI**: `/settings` page with tabbed interface (API Keys, Search Engines, Preferences)
+
+### Search Engine Integrations
+Located in `server/searchEngines.ts`:
+- **Brave Search**: Image search via Brave API
+- **Bing Image Search**: Azure Cognitive Services integration
+- **Google Custom Search**: Google CSE for image search
+
+### Replicate.com Integration
+Located in `server/replicateIntegration.ts`:
+- Dataset preparation for LoRA training
+- Training job submission and monitoring
+- Model retrieval after training completion
+
+## Recent Changes
+
+### December 2024
+- Added Settings page (`/settings`) with API key management
+- Implemented search engine integration service (Brave, Bing, Google)
+- Created Replicate.com integration for LoRA training
+- Set up Electron build configuration for Windows installer
+- Added Settings link to sidebar navigation
