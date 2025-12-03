@@ -17,10 +17,12 @@ interface Settings {
   openai: { apiKey: string };
   replicate: { apiKey: string };
   search: {
-    defaultEngine: "brave" | "bing" | "google";
+    defaultEngine: "brave" | "bing" | "google" | "pinterest" | "reddit";
     brave: { apiKey: string };
     bing: { apiKey: string };
     google: { apiKey: string; searchEngineId: string };
+    pinterest: { accessToken: string };
+    reddit: { clientId: string; clientSecret: string };
   };
   app: {
     defaultExportPath: string;
@@ -266,6 +268,8 @@ export default function SettingsPage() {
                     <SelectItem value="brave">Brave Search</SelectItem>
                     <SelectItem value="bing">Bing Image Search</SelectItem>
                     <SelectItem value="google">Google Custom Search</SelectItem>
+                    <SelectItem value="pinterest">Pinterest</SelectItem>
+                    <SelectItem value="reddit">Reddit</SelectItem>
                   </SelectContent>
                 </Select>
               </CardContent>
@@ -354,6 +358,69 @@ export default function SettingsPage() {
                     onChange={(e) => updateLocalSetting("search.google.searchEngineId", e.target.value)}
                     style={{ backgroundColor: "#2a2a2a" }}
                     data-testid="input-google-cse-id"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card style={{ backgroundColor: "#1a1a1a", border: "1px solid #2a2a2a" }}>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-white">Pinterest</CardTitle>
+                  {settings?.search.pinterest?.accessToken && (
+                    <Badge variant="secondary" className="text-xs">Configured</Badge>
+                  )}
+                </div>
+                <CardDescription className="text-neutral-400">
+                  Get your access token from developers.pinterest.com
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Label className="text-neutral-200">Access Token</Label>
+                <Input
+                  type="password"
+                  placeholder="pina_..."
+                  value={getLocalValue("search.pinterest.accessToken", "") as string}
+                  onChange={(e) => updateLocalSetting("search.pinterest.accessToken", e.target.value)}
+                  style={{ backgroundColor: "#2a2a2a" }}
+                  data-testid="input-pinterest-token"
+                />
+              </CardContent>
+            </Card>
+
+            <Card style={{ backgroundColor: "#1a1a1a", border: "1px solid #2a2a2a" }}>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-white">Reddit</CardTitle>
+                  {settings?.search.reddit?.clientId && (
+                    <Badge variant="secondary" className="text-xs">Configured</Badge>
+                  )}
+                </div>
+                <CardDescription className="text-neutral-400">
+                  Create an app at reddit.com/prefs/apps to get your credentials
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-neutral-200">Client ID</Label>
+                  <Input
+                    type="password"
+                    placeholder="Enter Reddit Client ID"
+                    value={getLocalValue("search.reddit.clientId", "") as string}
+                    onChange={(e) => updateLocalSetting("search.reddit.clientId", e.target.value)}
+                    style={{ backgroundColor: "#2a2a2a" }}
+                    data-testid="input-reddit-client-id"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-neutral-200">Client Secret</Label>
+                  <Input
+                    type="password"
+                    placeholder="Enter Reddit Client Secret"
+                    value={getLocalValue("search.reddit.clientSecret", "") as string}
+                    onChange={(e) => updateLocalSetting("search.reddit.clientSecret", e.target.value)}
+                    style={{ backgroundColor: "#2a2a2a" }}
+                    data-testid="input-reddit-client-secret"
                   />
                 </div>
               </CardContent>
