@@ -1,0 +1,237 @@
+import { useState, useEffect } from "react";
+import { XIcon, ImageIcon, Trash2, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { useUpdateImage, useDeleteImage } from "@/hooks/useImages";
+import { useToast } from "@/hooks/use-toast";
+import type { ImageWithUrl } from "@/lib/api";
+
+interface DetailPanelProps {
+  image: ImageWithUrl | null;
+  onClose: () => void;
+  onDeleted?: () => void;
+}
+
+export function DetailPanel({ image, onClose, onDeleted }: DetailPanelProps) {
+  const [caption, setCaption] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const { toast } = useToast();
+
+  const updateImage = useUpdateImage();
+  const deleteImage = useDeleteImage();
+
+  useEffect(() => {
+    if (image) {
+      setCaption(image.caption || "");
+      setTags(image.tags || []);
+    }
+  }, [image]);
+
+  if (!image) {
+    return (
+      <aside
+        className="w-[322px] h-full border-l border-solid flex flex-col items-center justify-center"
+        style={{
+          backgroundColor: "#121212",
+          borderColor: "#2c2c2c33",
+        }}
+      >
+        <ImageIcon className="w-12 h-12 text-neutral-500 mb-4" />
+        <p className="text-[#9a9a9a] text-sm">Select an image to view details</p>
+      </aside>
+    );
+  }
+
+  const formatSize = (bytes: number | null | undefined) => {
+    if (!bytes) return "Unknown";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
+
+  const formatMime = (mime: string | null | undefined) => {
+    if (!mime) return "Unknown";
+    return mime.split("/")[1]?.toUpperCase() || mime;
+  };
+
+  const handleSave = async () => {
+    try {
+      await updateImage.mutateAsync({
+        id: image.id,
+        data: { caption, tags },
+      });
+      toast({ title: "Image updated successfully" });
+    } catch {
+      toast({ title: "Failed to update image", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this image?")) return;
+    try {
+      await deleteImage.mutateAsync(image.id);
+      toast({ title: "Image deleted successfully" });
+      onDeleted?.();
+    } catch {
+      toast({ title: "Failed to delete image", variant: "destructive" });
+    }
+  };
+
+  const addTag = () => {
+    if (newTag.trim() && !tags.includes(newTag.trim())) {
+      setTags([...tags, newTag.trim()]);
+      setNewTag("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter((t) => t !== tagToRemove));
+  };
+
+  const imageInfo = [
+    { label: "Resolution", value: image.width && image.height ? `${image.width} × ${image.height}` : "Unknown" },
+    { label: "Format", value: formatMime(image.mime) },
+    { label: "Size", value: formatSize(image.sizeBytes) },
+    { label: "Source", value: image.sourceType || "Unknown" },
+  ];
+
+  return (
+    <aside
+      className="w-[322px] h-full border-l border-solid shadow-[-4px_0px_12px_30px_#0c0c0d0d] flex flex-col"
+      style={{
+        backgroundColor: "#121212",
+        borderColor: "#2c2c2c33",
+      }}
+      data-testid="detail-panel"
+    >
+      <header className="h-[60px] flex items-center justify-center relative px-6">
+        <h2 className="text-[#e8e8e8] text-base font-medium text-center">
+          Image Details
+        </h2>
+        <Button
+          variant="ghost"
+          onClick={onClose}
+          className="absolute right-6 top-1/2 -translate-y-1/2 h-auto w-auto p-0"
+          data-testid="button-close-panel"
+        >
+          <XIcon className="w-5 h-5 text-white" />
+        </Button>
+      </header>
+
+      <div className="flex-1 px-6 py-6 flex flex-col gap-6 overflow-auto">
+        <Card
+          className="w-full h-[244px] border border-solid shadow-[0px_4px_4px_#00000040] rounded-lg"
+          style={{
+            backgroundColor: "#1e1e1e",
+            borderColor: "#2a2a2a",
+          }}
+        >
+          <CardContent className="h-full flex items-center justify-center p-0">
+            {image.url ? (
+              <img
+                src={image.url}
+                alt={image.originalFilename || "Image"}
+                className="max-w-full max-h-full object-contain"
+              />
+            ) : (
+              <ImageIcon className="w-12 h-12 text-neutral-500" />
+            )}
+          </CardContent>
+        </Card>
+
+        <section>
+          <h3 className="text-white text-base font-medium mb-3">Info</h3>
+          <div className="flex flex-col gap-1.5">
+            {imageInfo.map((info, index) => (
+              <p
+                key={index}
+                className="text-[#bfbfbf] text-[13px]"
+                data-testid={`info-${info.label.toLowerCase()}`}
+              >
+                {info.label}: {info.value}
+              </p>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-white text-base font-medium mb-3">Tags</h3>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {tags.map((tag, index) => (
+              <Badge
+                key={index}
+                variant="secondary"
+                className="rounded-xl px-3 py-1 h-auto text-sm cursor-pointer"
+                style={{ backgroundColor: "#2a2a2a" }}
+                onClick={() => removeTag(tag)}
+                data-testid={`tag-${tag}`}
+              >
+                {tag}
+                <XIcon className="w-3 h-3 ml-1" />
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              value={newTag}
+              onChange={(e) => setNewTag(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addTag()}
+              placeholder="Add tag..."
+              className="flex-1 h-8 border-0 rounded-lg"
+              style={{ backgroundColor: "#2a2a2a" }}
+              data-testid="input-new-tag"
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={addTag}
+              style={{ backgroundColor: "#2a2a2a" }}
+              data-testid="button-add-tag"
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-white text-base font-medium mb-3">Caption</h3>
+          <Textarea
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            placeholder="Write a caption..."
+            className="w-full h-[100px] border border-solid rounded-lg shadow-[0px_4px_4px_#0000001a] resize-none text-sm"
+            style={{ backgroundColor: "#2a2a2a" }}
+            data-testid="textarea-caption"
+          />
+        </section>
+
+        <div className="flex gap-2 mt-auto">
+          <Button
+            onClick={handleSave}
+            disabled={updateImage.isPending}
+            className="flex-1 h-[41px] rounded-lg shadow-[0px_2px_6px_#00000026] text-white text-base font-semibold"
+            style={{ backgroundColor: "#3a3a3a" }}
+            data-testid="button-save"
+          >
+            {updateImage.isPending ? "Saving..." : "Save Changes"}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDelete}
+            disabled={deleteImage.isPending}
+            className="h-[41px] w-[41px]"
+            style={{ backgroundColor: "#2a2a2a" }}
+            data-testid="button-delete"
+          >
+            <Trash2 className="w-5 h-5 text-red-400" />
+          </Button>
+        </div>
+      </div>
+    </aside>
+  );
+}

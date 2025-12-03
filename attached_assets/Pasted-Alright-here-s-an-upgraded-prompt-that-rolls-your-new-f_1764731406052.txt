@@ -1,0 +1,53 @@
+Alright, here’s an upgraded prompt that rolls your new features in and explains LoRA Craft *exactly* the way Replit likes to chew on it — clear, structured, and “here’s what to build, no guessing.”
+
+Drop this straight into Replit:
+
+---
+
+**PROMPT FOR REPLIT / DEV ASSISTANT**
+
+I’m building an app called **LoRA Craft**.
+LoRA Craft is an end-to-end dataset builder designed for training LoRA image models (Flux, SDXL, etc.). Your job is to help me architect, refine, and code the entire application.
+
+Here’s what LoRA Craft does:
+
+**1. Image Collection & Search**
+• Users can search for images directly inside the app (Google/Bing/Brave API or similar).
+• Users can import/upload their own images.
+• The app stores them into a “collection workspace” where users can sort, tag, and clean their dataset.
+
+**2. Dataset Cleaning & Prep**
+• Auto-crop subject and/or face.
+• Remove duplicates.
+• Enforce ideal aspect ratios.
+• Auto-caption (BLIP, LLaVA, or other captioning models).
+• Manual editing of captions and tags.
+• Enforce recommended dataset sizes.
+• Export image metadata in the right structure.
+
+**3. Integration with Replicate.com**
+• Users can push the finalized dataset directly to Replicate for LoRA training.
+• The app packages images + captions + config into a JSON payload Replicate accepts.
+• Show training progress and return download URLs for model outputs.
+
+**4. Dataset Export**
+• Users can export the prepared dataset as a ZIP (images + captions + metadata).
+• Folder structure follows industry-standard LoRA training conventions.
+
+**5. UX Philosophy**
+LoRA Craft should feel like “dataset creation for humans.”
+Clean UI, drag-and-drop, simple workflows, idiot-proof guardrails, and every step visually tells the user what's happening.
+
+**What I want from you:**
+• Clean, production-quality code (not pseudocode).
+• Architecture guidance.
+• Suggestions for libraries, image-processing tools, and APIs.
+• UI/UX layout ideas.
+• Full modules/components when needed.
+• No vague answers — give complete implementations.
+
+Build everything assuming the whole purpose is to make dataset creation stupidly easy, even for people who don’t understand machine learning.
+
+---
+
+If you want, I can also give you a **variant optimized for Python**, **Tauri/React**, **Electron**, or even a **backend-first version**.
