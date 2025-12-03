@@ -1,10 +1,21 @@
 import OpenAI from "openai";
 import { objectStorageService } from "./objectStorage";
 
-const openai = new OpenAI({
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-});
+let openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("OpenAI API key not configured. Set OPENAI_API_KEY or AI_INTEGRATIONS_OPENAI_API_KEY environment variable.");
+    }
+    openai = new OpenAI({
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      apiKey,
+    });
+  }
+  return openai;
+}
 
 export async function generateCaption(storageKey: string): Promise<string> {
   const buffer = await objectStorageService.downloadToBuffer(storageKey);
@@ -12,7 +23,7 @@ export async function generateCaption(storageKey: string): Promise<string> {
   
   const mimeType = storageKey.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
   
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       {
@@ -60,7 +71,7 @@ export async function generateTags(storageKey: string): Promise<string[]> {
   
   const mimeType = storageKey.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
   
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       {

@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
 import { Minus, Square, X, Copy } from "lucide-react";
 
+let tauriInvoke: ((cmd: string) => Promise<any>) | null = null;
 let tauriWindow: typeof import("@tauri-apps/api/window") | null = null;
 
 async function initTauri() {
   try {
+    const core = await import("@tauri-apps/api/core");
+    tauriInvoke = core.invoke;
     tauriWindow = await import("@tauri-apps/api/window");
     return true;
   } catch {
@@ -21,15 +24,12 @@ export function TitleBar() {
   }, []);
 
   useEffect(() => {
-    if (!isTauri || !tauriWindow) return;
+    if (!isTauri || !tauriInvoke) return;
     
     const checkMaximized = async () => {
       try {
-        const appWindow = tauriWindow?.getCurrentWindow();
-        if (appWindow) {
-          const maximized = await appWindow.isMaximized();
-          setIsMaximized(maximized);
-        }
+        const maximized = await tauriInvoke!("is_maximized");
+        setIsMaximized(maximized);
       } catch {
         // Ignore errors
       }
@@ -42,24 +42,21 @@ export function TitleBar() {
   }, [isTauri]);
 
   const handleMinimize = async () => {
-    if (isTauri && tauriWindow) {
-      const appWindow = tauriWindow.getCurrentWindow();
-      await appWindow.minimize();
+    if (isTauri && tauriInvoke) {
+      await tauriInvoke("minimize_window");
     }
   };
 
   const handleMaximize = async () => {
-    if (isTauri && tauriWindow) {
-      const appWindow = tauriWindow.getCurrentWindow();
-      await appWindow.toggleMaximize();
+    if (isTauri && tauriInvoke) {
+      await tauriInvoke("maximize_window");
       setIsMaximized(!isMaximized);
     }
   };
 
   const handleClose = async () => {
-    if (isTauri && tauriWindow) {
-      const appWindow = tauriWindow.getCurrentWindow();
-      await appWindow.close();
+    if (isTauri && tauriInvoke) {
+      await tauriInvoke("close_window");
     }
   };
 

@@ -34,10 +34,12 @@ export interface IDatabase {
 let database: IDatabase;
 
 if (isElectron) {
-  const { localDb } = require('./localDatabase');
+  // Use local SQLite database for Electron/desktop mode
+  const { localDb } = await import('./localDatabase');
   database = localDb;
 } else {
-  const { storage } = require('./storage');
+  // Use cloud PostgreSQL database
+  const { storage } = await import('./storage');
   database = storage;
 }
 

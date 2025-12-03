@@ -3,10 +3,21 @@ import OpenAI, { toFile } from "openai";
 import { Buffer } from "node:buffer";
 import { Readable } from "stream";
 
-const openai = new OpenAI({
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY
-});
+let openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("OpenAI API key not configured. Set OPENAI_API_KEY or AI_INTEGRATIONS_OPENAI_API_KEY environment variable.");
+    }
+    openai = new OpenAI({
+      baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      apiKey,
+    });
+  }
+  return openai;
+}
 
 export interface ResizeOptions {
   targetWidth?: number;
@@ -50,7 +61,7 @@ export async function removeBackground(imageBuffer: Buffer): Promise<Buffer> {
   const imageStream = Readable.from(imageBuffer);
   const imageFile = await toFile(imageStream, "image.png", { type: "image/png" });
 
-  const response = await openai.images.edit({
+  const response = await getOpenAI().images.edit({
     model: "gpt-image-1",
     image: [imageFile],
     prompt: "Remove the background from this image completely, leaving only the main subject with a transparent background. Keep the subject exactly as it appears, with perfect edge detection and no artifacts.",

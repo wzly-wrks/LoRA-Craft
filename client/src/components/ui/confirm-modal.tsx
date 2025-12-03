@@ -55,7 +55,7 @@ export function ConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-[9999] flex items-center justify-center"
       onClick={handleBackdropClick}
       data-testid="confirm-modal-backdrop"
     >

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SearchIcon, FilterIcon, Copy, Download, Loader2, Wand2, Check } from "lucide-react";
+import { SearchIcon, FilterIcon, Copy, Download, Loader2, Wand2, Check, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,7 @@ interface DatasetToolbarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onFilterChange?: (filters: ImageFilters) => void;
+  onWebSearch?: () => void;
 }
 
 export interface ImageFilters {
@@ -78,6 +79,7 @@ export function DatasetToolbar({
   searchQuery,
   onSearchChange,
   onFilterChange,
+  onWebSearch,
 }: DatasetToolbarProps) {
   const [exportId, setExportId] = useState<string | null>(null);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
@@ -426,6 +428,20 @@ export function DatasetToolbar({
           </div>
         </PopoverContent>
       </Popover>
+
+      {onWebSearch && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onWebSearch}
+          className="surface-3 rounded-md interactive transition-smooth"
+          disabled={!selectedDatasetId}
+          data-testid="button-web-search"
+          title="Search web for images"
+        >
+          <Globe className="w-5 h-5 text-secondary" />
+        </Button>
+      )}
 
       <div className="flex-1" />
 

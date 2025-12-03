@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import { createHash } from "crypto";
-import { storage } from "./storage";
+import { db as storage } from "./databaseAdapter";
 import { objectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { generateCaption, generateTags } from "./captioning";
 import { registerSettingsRoutes } from "./settingsRoutes";
@@ -251,6 +251,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error uploading images:", error);
       res.status(500).json({ error: "Failed to upload images" });
+    }
+  });
+
+  app.post("/api/datasets/:datasetId/images/from-search", async (req: Request, res: Response) => {
+    try {
+      const { storageKey, hash, width, height, mime, sizeBytes, sourceUrl, workspaceId } = req.body;
+      
+      const dataset = await storage.getDataset(req.params.datasetId);
+      if (!dataset) {
+        return res.status(404).json({ error: "Dataset not found" });
+      }
+
+      const aspectRatio = width && height ? `${width}:${height}` : undefined;
+      const existingImages = await storage.getImagesByHash(hash, req.params.datasetId);
+      const isDuplicate = existingImages.length > 0;
+
+      const image = await storage.createImage({
+        datasetId: req.params.datasetId,
+        workspaceId: workspaceId || dataset.workspaceId,
+        sourceType: "search",
+        sourceUrl,
+        storageKey,
+        originalFilename: sourceUrl.split('/').pop() || 'search_image',
+        width,
+        height,
+        mime,
+        sizeBytes,
+        hash,
+        aspectRatio,
+        flaggedDuplicate: isDuplicate,
+        duplicateOfId: isDuplicate ? existingImages[0].id : undefined,
+      });
+
+      res.status(201).json(image);
+    } catch (error) {
+      console.error("Error creating image from search:", error);
+      res.status(500).json({ error: "Failed to create image" });
     }
   });
 

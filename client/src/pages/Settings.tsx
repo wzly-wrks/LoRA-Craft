@@ -126,8 +126,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: "#0f0f0f" }}>
-      <div className="max-w-4xl mx-auto">
+    <div className="h-screen overflow-auto p-6" style={{ backgroundColor: "#0f0f0f" }}>
+      <div className="max-w-4xl mx-auto pb-10">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
             <Link href="/">

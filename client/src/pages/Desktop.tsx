@@ -4,24 +4,19 @@ import { Sidebar } from "@/components/Sidebar";
 import { ImageGrid } from "@/components/ImageGrid";
 import { DetailPanel } from "@/components/DetailPanel";
 import { DatasetToolbar } from "@/components/DatasetToolbar";
+import { WebSearchModal } from "@/components/WebSearchModal";
 import { useWorkspaces, useCreateWorkspace } from "@/hooks/useWorkspaces";
 import { useDatasets, useCreateDataset } from "@/hooks/useDatasets";
 import { useImages, useImage } from "@/hooks/useImages";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { Modal, ModalFooter } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Dataset } from "@shared/schema";
 
-type ModalType = "workspace" | "dataset" | null;
+type ModalType = "workspace" | "dataset" | "web-search" | null;
 
 export const Desktop = (): JSX.Element => {
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>();
@@ -233,6 +228,7 @@ export const Desktop = (): JSX.Element => {
             onSelectDataset={setSelectedDatasetId}
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
+            onWebSearch={() => setModalType("web-search")}
           />
           <div className="flex-1 min-h-0 overflow-auto">
             <ImageGrid
@@ -254,105 +250,118 @@ export const Desktop = (): JSX.Element => {
         />
       </div>
 
-      <Dialog open={modalType === "workspace"} onOpenChange={(open) => !open && handleCloseModal()}>
-        <DialogContent className="glass border-glow animate-scale-in">
-          <DialogHeader>
-            <DialogTitle className="text-primary-emphasis text-lg">Create New Concept</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 py-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="name" className="text-secondary text-sm">Name</Label>
-              <Input
-                id="name"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="My Concept"
-                className="surface-3 border-0 focus:ring-1 input-glow transition-smooth"
-                data-testid="input-workspace-name"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="description" className="text-secondary text-sm">Description</Label>
-              <Textarea
-                id="description"
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder="Optional description..."
-                className="surface-3 border-0 resize-none focus:ring-1 input-glow transition-smooth"
-                data-testid="input-workspace-description"
-              />
-            </div>
+      {/* Create Workspace Modal */}
+      <Modal
+        isOpen={modalType === "workspace"}
+        onClose={handleCloseModal}
+        title="Create New Concept"
+        className="glass"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="name" className="text-secondary text-sm">Name</Label>
+            <Input
+              id="name"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              placeholder="My Concept"
+              className="surface-3 border-0 focus:ring-1 input-glow transition-smooth"
+              data-testid="input-workspace-name"
+              autoFocus
+            />
           </div>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="ghost"
-              onClick={handleCloseModal}
-              className="transition-smooth"
-              data-testid="button-cancel-workspace"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateWorkspace}
-              disabled={createWorkspace.isPending}
-              className="accent-pink transition-smooth"
-              data-testid="button-create-workspace"
-            >
-              {createWorkspace.isPending ? "Creating..." : "Create Concept"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="description" className="text-secondary text-sm">Description</Label>
+            <Textarea
+              id="description"
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              placeholder="Optional description..."
+              className="surface-3 border-0 resize-none focus:ring-1 input-glow transition-smooth"
+              data-testid="input-workspace-description"
+            />
+          </div>
+        </div>
+        <ModalFooter className="gap-2">
+          <Button
+            variant="ghost"
+            onClick={handleCloseModal}
+            className="transition-smooth"
+            data-testid="button-cancel-workspace"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreateWorkspace}
+            disabled={createWorkspace.isPending}
+            className="accent-pink transition-smooth"
+            data-testid="button-create-workspace"
+          >
+            {createWorkspace.isPending ? "Creating..." : "Create Concept"}
+          </Button>
+        </ModalFooter>
+      </Modal>
 
-      <Dialog open={modalType === "dataset"} onOpenChange={(open) => !open && handleCloseModal()}>
-        <DialogContent className="glass border-glow animate-scale-in">
-          <DialogHeader>
-            <DialogTitle className="text-primary-emphasis text-lg">Create First Dataset</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-4 py-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="dataset-name" className="text-secondary text-sm">Dataset Name</Label>
-              <Input
-                id="dataset-name"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="Training Set"
-                className="surface-3 border-0 focus:ring-1 input-glow transition-smooth"
-                data-testid="input-dataset-name"
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="dataset-description" className="text-secondary text-sm">Description</Label>
-              <Textarea
-                id="dataset-description"
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder="Optional description..."
-                className="surface-3 border-0 resize-none focus:ring-1 input-glow transition-smooth"
-                data-testid="input-dataset-description"
-              />
-            </div>
+      {/* Create Dataset Modal */}
+      <Modal
+        isOpen={modalType === "dataset"}
+        onClose={handleCloseModal}
+        title="Create First Dataset"
+        className="glass"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="dataset-name" className="text-secondary text-sm">Dataset Name</Label>
+            <Input
+              id="dataset-name"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              placeholder="Training Set"
+              className="surface-3 border-0 focus:ring-1 input-glow transition-smooth"
+              data-testid="input-dataset-name"
+              autoFocus
+            />
           </div>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="ghost"
-              onClick={handleCloseModal}
-              className="transition-smooth"
-              data-testid="button-cancel-dataset"
-            >
-              Skip for now
-            </Button>
-            <Button
-              onClick={handleCreateDataset}
-              disabled={createDataset.isPending}
-              className="accent-pink transition-smooth"
-              data-testid="button-create-dataset"
-            >
-              {createDataset.isPending ? "Creating..." : "Create Dataset"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="dataset-description" className="text-secondary text-sm">Description</Label>
+            <Textarea
+              id="dataset-description"
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              placeholder="Optional description..."
+              className="surface-3 border-0 resize-none focus:ring-1 input-glow transition-smooth"
+              data-testid="input-dataset-description"
+            />
+          </div>
+        </div>
+        <ModalFooter className="gap-2">
+          <Button
+            variant="ghost"
+            onClick={handleCloseModal}
+            className="transition-smooth"
+            data-testid="button-cancel-dataset"
+          >
+            Skip for now
+          </Button>
+          <Button
+            onClick={handleCreateDataset}
+            disabled={createDataset.isPending}
+            className="accent-pink transition-smooth"
+            data-testid="button-create-dataset"
+          >
+            {createDataset.isPending ? "Creating..." : "Create Dataset"}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Web Search Modal */}
+      <WebSearchModal
+        isOpen={modalType === "web-search"}
+        onClose={handleCloseModal}
+        datasetId={selectedDatasetId}
+        workspaceId={selectedWorkspaceId}
+        onImagesAdded={() => refetchImages()}
+      />
     </div>
   );
 };
