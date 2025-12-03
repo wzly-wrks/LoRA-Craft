@@ -4,7 +4,156 @@
 
 LoRA Craft is an end-to-end dataset builder designed for training LoRA (Low-Rank Adaptation) image models for systems like Flux and SDXL. The application provides a complete workflow for collecting, organizing, cleaning, and preparing image datasets, then exporting them for model training or pushing them directly to Replicate.com for training.
 
-The application follows a workspace-based organization where users create workspaces containing multiple datasets. Each dataset consists of images with associated metadata (captions, tags, aspect ratios) that can be cleaned, deduplicated, and prepared according to LoRA training best practices.
+The application follows a workspace-based organization where users create workspaces (called "Concepts") containing multiple datasets. Each dataset consists of images with associated metadata (captions, tags, aspect ratios) that can be cleaned, deduplicated, and prepared according to LoRA training best practices.
+
+## Getting Started
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. For desktop mode (Tauri), ensure you have [Rust](https://www.rust-lang.org/tools/install) installed.
+
+### Running the Application
+
+**Development (Desktop - Recommended):**
+```bash
+npm run tauri:dev
+```
+
+**Development (Web):**
+```bash
+npm run dev
+```
+
+**Production Build:**
+```bash
+npm run tauri:build
+```
+
+## Features
+
+- **Web Image Search**: Search for images across multiple search engines (Brave, Bing, Google, Pinterest, Reddit)
+- **Drag & Drop Upload**: Easily add local images to your datasets
+- **Auto-Captioning**: Generate captions using AI (requires OpenAI API key)
+- **Duplicate Detection**: Automatically detect and flag duplicate images
+- **Dataset Export**: Export datasets in LoRA-ready format
+- **Replicate Integration**: Train models directly on Replicate.com
+
+## Search Engine API Keys
+
+To use the web image search feature, you'll need to obtain API keys for at least one search engine. Configure these in **Settings > Search Engines**.
+
+### Brave Search (Recommended - Free Tier Available)
+
+Brave Search offers a generous free tier with 2,000 queries/month.
+
+1. Go to [Brave Search API](https://brave.com/search/api/)
+2. Click "Get Started for Free"
+3. Create an account or sign in
+4. Subscribe to the "Free" plan (2,000 queries/month) or a paid plan
+5. Go to your [API Dashboard](https://api.search.brave.com/app/dashboard)
+6. Copy your API key
+7. Paste it in LoRA Craft Settings > Search Engines > Brave API Key
+
+### Bing Image Search (Azure)
+
+Bing Search is part of Azure Cognitive Services.
+
+1. Go to [Azure Portal](https://portal.azure.com/)
+2. Create an Azure account if you don't have one (free tier available)
+3. Click "Create a resource"
+4. Search for "Bing Search v7" and select it
+5. Click "Create"
+6. Fill in the required fields:
+   - **Resource group**: Create new or select existing
+   - **Name**: Choose a name for your resource
+   - **Pricing tier**: F1 (Free - 1,000 transactions/month) or S1 (Paid)
+7. Click "Review + create" then "Create"
+8. Once deployed, go to your resource
+9. Click "Keys and Endpoint" in the left sidebar
+10. Copy "Key 1" or "Key 2"
+11. Paste it in LoRA Craft Settings > Search Engines > Bing API Key
+
+### Google Custom Search
+
+Google Custom Search requires both an API key and a Search Engine ID.
+
+**Step 1: Create API Key**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing
+3. Go to "APIs & Services" > "Credentials"
+4. Click "Create Credentials" > "API Key"
+5. Copy the API key
+6. (Optional) Click "Edit API key" to restrict it to Custom Search API
+
+**Step 2: Create Custom Search Engine**
+1. Go to [Programmable Search Engine](https://programmablesearchengine.google.com/)
+2. Click "Add" to create a new search engine
+3. Under "Sites to search", select "Search the entire web"
+4. Give it a name and click "Create"
+5. Click "Customize" on your new search engine
+6. Copy the "Search engine ID" (cx)
+7. Under "Image search", toggle it ON
+
+**Step 3: Enable API**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Navigate to "APIs & Services" > "Library"
+3. Search for "Custom Search API"
+4. Click on it and click "Enable"
+
+**Step 4: Configure in LoRA Craft**
+- Paste the API Key in Settings > Search Engines > Google API Key
+- Paste the Search Engine ID in Settings > Search Engines > Google Search Engine ID
+
+**Note**: Google Custom Search has a free tier of 100 queries/day. Additional queries cost $5 per 1,000.
+
+### Pinterest
+
+Pinterest API access requires a Pinterest Business account and app approval.
+
+1. Go to [Pinterest Developers](https://developers.pinterest.com/)
+2. Sign in with a Pinterest Business account
+3. Click "My apps" > "Create app"
+4. Fill in app details and submit for review
+5. Once approved, go to your app's dashboard
+6. Copy the access token
+7. Paste it in LoRA Craft Settings > Search Engines > Pinterest Access Token
+
+**Note**: Pinterest API access is more restrictive and may require app review approval.
+
+### Reddit
+
+Reddit API requires creating an app for OAuth2 credentials.
+
+1. Go to [Reddit App Preferences](https://www.reddit.com/prefs/apps)
+2. Scroll down and click "create another app..."
+3. Fill in the details:
+   - **Name**: LoRA Craft (or any name)
+   - **App type**: Select "script"
+   - **Description**: Optional
+   - **About URL**: Optional
+   - **Redirect URI**: `http://localhost:5000` (required but not used)
+4. Click "create app"
+5. Note down:
+   - **Client ID**: The string under your app name (looks like random characters)
+   - **Client Secret**: The "secret" field
+6. Paste both in LoRA Craft Settings > Search Engines
+
+**Note**: Reddit API is free but has rate limits (60 requests/minute for OAuth2).
+
+### Recommended Setup
+
+For the best experience, we recommend setting up **Brave Search** first:
+- Easy signup process
+- Generous free tier (2,000 queries/month)
+- Good image search quality
+- Fast API response times
+
+You can add additional search engines later for more variety in search results.
 
 ## User Preferences
 
@@ -311,3 +460,4 @@ Requires Rust toolchain installed locally:
 npm run tauri dev    # Development
 npm run tauri build  # Production build
 ```
+### Built with ❤️ in ~/Los_Angeles by weezly.works & his army of robots.

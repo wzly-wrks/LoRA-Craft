@@ -229,6 +229,7 @@ export const Desktop = (): JSX.Element => {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             onWebSearch={() => setModalType("web-search")}
+            onCreateDataset={selectedWorkspaceId ? () => setModalType("dataset") : undefined}
           />
           <div className="flex-1 min-h-0 overflow-auto">
             <ImageGrid
@@ -306,7 +307,7 @@ export const Desktop = (): JSX.Element => {
       <Modal
         isOpen={modalType === "dataset"}
         onClose={handleCloseModal}
-        title="Create First Dataset"
+        title="Create New Dataset"
         className="glass"
       >
         <div className="flex flex-col gap-4">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SearchIcon, FilterIcon, Copy, Download, Loader2, Wand2, Check, Globe } from "lucide-react";
+import { SearchIcon, FilterIcon, Copy, Download, Loader2, Wand2, Globe, PlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,24 +36,16 @@ interface DatasetToolbarProps {
   onSearchChange: (query: string) => void;
   onFilterChange?: (filters: ImageFilters) => void;
   onWebSearch?: () => void;
+  onCreateDataset?: () => void;
 }
 
 export interface ImageFilters {
-  engines: Set<string>;
   minWidth?: number;
   minHeight?: number;
   maxWidth?: number;
   maxHeight?: number;
   aspectRatio?: string;
 }
-
-const SEARCH_ENGINES = [
-  { id: "google", label: "Google" },
-  { id: "bing", label: "Bing" },
-  { id: "brave", label: "Brave" },
-  { id: "pinterest", label: "Pinterest" },
-  { id: "reddit", label: "Reddit" },
-] as const;
 
 const ASPECT_RATIOS = [
   { id: "any", label: "Any" },
@@ -80,12 +72,10 @@ export function DatasetToolbar({
   onSearchChange,
   onFilterChange,
   onWebSearch,
+  onCreateDataset,
 }: DatasetToolbarProps) {
   const [exportId, setExportId] = useState<string | null>(null);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
-  const [selectedEngines, setSelectedEngines] = useState<Set<string>>(
-    new Set(SEARCH_ENGINES.map((e) => e.id))
-  );
   const [sizePreset, setSizePreset] = useState("any");
   const [aspectRatio, setAspectRatio] = useState("any");
   const [customMinWidth, setCustomMinWidth] = useState("");
@@ -144,47 +134,21 @@ export function DatasetToolbar({
     }
   };
 
-  const toggleEngine = (engineId: string) => {
-    const newSet = new Set(selectedEngines);
-    if (newSet.has(engineId)) {
-      if (newSet.size > 1) {
-        newSet.delete(engineId);
-      }
-    } else {
-      newSet.add(engineId);
-    }
-    setSelectedEngines(newSet);
-    notifyFilterChange(newSet, sizePreset, aspectRatio);
-  };
-
-  const toggleAllEngines = () => {
-    if (selectedEngines.size === SEARCH_ENGINES.length) {
-      const newSet = new Set([SEARCH_ENGINES[0].id]);
-      setSelectedEngines(newSet);
-      notifyFilterChange(newSet, sizePreset, aspectRatio);
-    } else {
-      const newSet = new Set(SEARCH_ENGINES.map((e) => e.id));
-      setSelectedEngines(newSet);
-      notifyFilterChange(newSet, sizePreset, aspectRatio);
-    }
-  };
-
   const handleSizePresetChange = (preset: string) => {
     setSizePreset(preset);
-    notifyFilterChange(selectedEngines, preset, aspectRatio);
+    notifyFilterChange(preset, aspectRatio);
   };
 
   const handleAspectRatioChange = (ratio: string) => {
     setAspectRatio(ratio);
-    notifyFilterChange(selectedEngines, sizePreset, ratio);
+    notifyFilterChange(sizePreset, ratio);
   };
 
-  const notifyFilterChange = (engines: Set<string>, size: string, ratio: string) => {
+  const notifyFilterChange = (size: string, ratio: string) => {
     if (!onFilterChange) return;
 
     const preset = SIZE_PRESETS.find(p => p.id === size);
     const filters: ImageFilters = {
-      engines,
       aspectRatio: ratio !== "any" ? ratio : undefined,
     };
 
@@ -212,7 +176,6 @@ export function DatasetToolbar({
   const isExporting = exportData?.status === "processing" || createExport.isPending;
 
   const hasActiveFilters = 
-    selectedEngines.size < SEARCH_ENGINES.length || 
     sizePreset !== "any" || 
     aspectRatio !== "any";
 
@@ -221,30 +184,45 @@ export function DatasetToolbar({
       className="toolbar-glass h-[60px] flex items-center gap-4 px-10"
       data-testid="dataset-toolbar"
     >
-      <Select
-        value={selectedDatasetId || ""}
-        onValueChange={onSelectDataset}
-      >
-        <SelectTrigger
-          className="w-auto min-w-[150px] h-8 border-0 rounded-md surface-3 transition-smooth text-primary-emphasis gap-1.5 px-3 shadow-sm"
-          data-testid="select-dataset"
+      <div className="flex items-center gap-2">
+        <Select
+          value={selectedDatasetId || ""}
+          onValueChange={onSelectDataset}
         >
-          <SelectValue placeholder="Select dataset" className="text-secondary" />
-        </SelectTrigger>
-        <SelectContent className="animate-slide-in-up">
-          {datasets.length === 0 ? (
-            <SelectItem value="none" disabled>
-              No datasets
-            </SelectItem>
-          ) : (
-            datasets.map((dataset) => (
-              <SelectItem key={dataset.id} value={dataset.id}>
-                {dataset.name}
+          <SelectTrigger
+            className="w-auto min-w-[150px] h-8 border-0 rounded-md surface-3 transition-smooth text-primary-emphasis gap-1.5 px-3 shadow-sm"
+            data-testid="select-dataset"
+          >
+            <SelectValue placeholder="Select dataset" className="text-secondary" />
+          </SelectTrigger>
+          <SelectContent className="animate-slide-in-up">
+            {datasets.length === 0 ? (
+              <SelectItem value="none" disabled>
+                No datasets - create one first
               </SelectItem>
-            ))
-          )}
-        </SelectContent>
-      </Select>
+            ) : (
+              datasets.map((dataset) => (
+                <SelectItem key={dataset.id} value={dataset.id}>
+                  {dataset.name}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+
+        {onCreateDataset && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onCreateDataset}
+            className="w-8 h-8 surface-3 rounded-md interactive transition-smooth"
+            title="Create new dataset"
+            data-testid="button-create-dataset-toolbar"
+          >
+            <PlusIcon className="w-4 h-4 text-secondary" />
+          </Button>
+        )}
+      </div>
 
       <div className="relative flex-1 max-w-[297px]">
         <Input
@@ -311,7 +289,7 @@ export function DatasetToolbar({
                     value={customMinWidth}
                     onChange={(e) => {
                       setCustomMinWidth(e.target.value);
-                      notifyFilterChange(selectedEngines, sizePreset, aspectRatio);
+                      notifyFilterChange(sizePreset, aspectRatio);
                     }}
                     placeholder="px"
                     className="h-7 text-xs border-0 surface-3 rounded-md transition-smooth input-glow"
@@ -325,7 +303,7 @@ export function DatasetToolbar({
                     value={customMinHeight}
                     onChange={(e) => {
                       setCustomMinHeight(e.target.value);
-                      notifyFilterChange(selectedEngines, sizePreset, aspectRatio);
+                      notifyFilterChange(sizePreset, aspectRatio);
                     }}
                     placeholder="px"
                     className="h-7 text-xs border-0 surface-3 rounded-md transition-smooth input-glow"
@@ -339,7 +317,7 @@ export function DatasetToolbar({
                     value={customMaxWidth}
                     onChange={(e) => {
                       setCustomMaxWidth(e.target.value);
-                      notifyFilterChange(selectedEngines, sizePreset, aspectRatio);
+                      notifyFilterChange(sizePreset, aspectRatio);
                     }}
                     placeholder="px"
                     className="h-7 text-xs border-0 surface-3 rounded-md transition-smooth input-glow"
@@ -353,7 +331,7 @@ export function DatasetToolbar({
                     value={customMaxHeight}
                     onChange={(e) => {
                       setCustomMaxHeight(e.target.value);
-                      notifyFilterChange(selectedEngines, sizePreset, aspectRatio);
+                      notifyFilterChange(sizePreset, aspectRatio);
                     }}
                     placeholder="px"
                     className="h-7 text-xs border-0 surface-3 rounded-md transition-smooth input-glow"
@@ -381,50 +359,6 @@ export function DatasetToolbar({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="p-3">
-            <Label className="text-xs text-secondary mb-2 block">Search Engines</Label>
-            <button
-              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm interactive transition-smooth text-left"
-              onClick={toggleAllEngines}
-              data-testid="button-toggle-all-engines"
-            >
-              <div 
-                className="w-4 h-4 rounded border flex items-center justify-center transition-smooth"
-                style={{ 
-                  borderColor: "rgba(255, 255, 255, 0.15)",
-                  backgroundColor: selectedEngines.size === SEARCH_ENGINES.length ? "hsl(330 85% 60%)" : "transparent"
-                }}
-              >
-                {selectedEngines.size === SEARCH_ENGINES.length && (
-                  <Check className="w-3 h-3 text-white" />
-                )}
-              </div>
-              <span className="text-secondary">All Engines</span>
-            </button>
-            <div className="h-px my-1 bg-white/[0.06]" />
-            {SEARCH_ENGINES.map((engine) => (
-              <button
-                key={engine.id}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm interactive transition-smooth text-left"
-                onClick={() => toggleEngine(engine.id)}
-                data-testid={`button-toggle-${engine.id}`}
-              >
-                <div 
-                  className="w-4 h-4 rounded border flex items-center justify-center transition-smooth"
-                  style={{ 
-                    borderColor: "rgba(255, 255, 255, 0.15)",
-                    backgroundColor: selectedEngines.has(engine.id) ? "hsl(330 85% 60%)" : "transparent"
-                  }}
-                >
-                  {selectedEngines.has(engine.id) && (
-                    <Check className="w-3 h-3 text-white" />
-                  )}
-                </div>
-                <span className="text-secondary">{engine.label}</span>
-              </button>
-            ))}
           </div>
         </PopoverContent>
       </Popover>

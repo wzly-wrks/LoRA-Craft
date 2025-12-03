@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { Search, Loader2, Download, Check, AlertCircle, Image as ImageIcon } from "lucide-react";
 import { Modal, ModalFooter } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 interface SearchResult {
@@ -23,6 +24,17 @@ interface SearchResult {
   source: string;
 }
 
+interface Settings {
+  search: {
+    defaultEngine: string;
+    brave: { apiKey: string };
+    bing: { apiKey: string };
+    google: { apiKey: string; searchEngineId: string };
+    pinterest: { accessToken: string };
+    reddit: { clientId: string; clientSecret: string };
+  };
+}
+
 interface WebSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -31,7 +43,7 @@ interface WebSearchModalProps {
   onImagesAdded: () => void;
 }
 
-const SEARCH_ENGINES = [
+const ALL_SEARCH_ENGINES = [
   { id: "brave", label: "Brave Search" },
   { id: "bing", label: "Bing Images" },
   { id: "google", label: "Google Images" },
@@ -47,7 +59,7 @@ export function WebSearchModal({
   onImagesAdded,
 }: WebSearchModalProps) {
   const [query, setQuery] = useState("");
-  const [engine, setEngine] = useState<string>("brave");
+  const [engine, setEngine] = useState<string>("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set());
   const [isSearching, setIsSearching] = useState(false);
@@ -55,6 +67,61 @@ export function WebSearchModal({
   const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Fetch settings to get configured engines
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+    enabled: isOpen,
+  });
+
+  // Determine which engines are configured
+  const configuredEngines = useMemo(() => {
+    if (!settings?.search) return [];
+    
+    const engines: typeof ALL_SEARCH_ENGINES[number][] = [];
+    
+    if (settings.search.brave?.apiKey) {
+      engines.push(ALL_SEARCH_ENGINES.find(e => e.id === "brave")!);
+    }
+    if (settings.search.bing?.apiKey) {
+      engines.push(ALL_SEARCH_ENGINES.find(e => e.id === "bing")!);
+    }
+    if (settings.search.google?.apiKey && settings.search.google?.searchEngineId) {
+      engines.push(ALL_SEARCH_ENGINES.find(e => e.id === "google")!);
+    }
+    if (settings.search.pinterest?.accessToken) {
+      engines.push(ALL_SEARCH_ENGINES.find(e => e.id === "pinterest")!);
+    }
+    if (settings.search.reddit?.clientId && settings.search.reddit?.clientSecret) {
+      engines.push(ALL_SEARCH_ENGINES.find(e => e.id === "reddit")!);
+    }
+    
+    return engines;
+  }, [settings]);
+
+  // Set default engine when settings load or modal opens
+  useEffect(() => {
+    if (settings?.search && configuredEngines.length > 0 && !engine) {
+      // Use default engine if it's configured, otherwise use first configured engine
+      const defaultEngine = settings.search.defaultEngine;
+      if (configuredEngines.find(e => e.id === defaultEngine)) {
+        setEngine(defaultEngine);
+      } else {
+        setEngine(configuredEngines[0].id);
+      }
+    }
+  }, [settings, configuredEngines, engine]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery("");
+      setResults([]);
+      setSelectedUrls(new Set());
+      setError(null);
+      setEngine("");
+    }
+  }, [isOpen]);
 
   const handleSearch = async () => {
     if (!query.trim()) {
@@ -204,6 +271,16 @@ export function WebSearchModal({
       className="max-w-4xl w-full"
     >
       <div className="space-y-4">
+        {/* No engines configured warning */}
+        {configuredEngines.length === 0 && (
+          <div className="flex items-center gap-2 p-3 rounded-md bg-amber-500/10 text-amber-500">
+            <AlertCircle className="w-4 h-4" />
+            <span className="text-sm">
+              No search engines configured. Go to Settings to add API keys for Brave, Bing, Google, Pinterest, or Reddit.
+            </span>
+          </div>
+        )}
+
         {/* Search Controls */}
         <div className="flex gap-2">
           <div className="flex-1">
@@ -213,16 +290,20 @@ export function WebSearchModal({
               onKeyDown={handleKeyDown}
               placeholder="Search for images..."
               className="surface-3 border-0"
-              disabled={isSearching || isDownloading}
+              disabled={isSearching || isDownloading || configuredEngines.length === 0}
               data-testid="web-search-input"
             />
           </div>
-          <Select value={engine} onValueChange={setEngine} disabled={isSearching || isDownloading}>
+          <Select 
+            value={engine} 
+            onValueChange={setEngine} 
+            disabled={isSearching || isDownloading || configuredEngines.length === 0}
+          >
             <SelectTrigger className="w-[180px] surface-3 border-0" data-testid="web-search-engine">
-              <SelectValue />
+              <SelectValue placeholder="Select engine" />
             </SelectTrigger>
             <SelectContent>
-              {SEARCH_ENGINES.map((eng) => (
+              {configuredEngines.map((eng) => (
                 <SelectItem key={eng.id} value={eng.id}>
                   {eng.label}
                 </SelectItem>
@@ -231,7 +312,7 @@ export function WebSearchModal({
           </Select>
           <Button
             onClick={handleSearch}
-            disabled={isSearching || isDownloading || !query.trim()}
+            disabled={isSearching || isDownloading || !query.trim() || !engine || configuredEngines.length === 0}
             className="accent-pink"
             data-testid="web-search-button"
           >
