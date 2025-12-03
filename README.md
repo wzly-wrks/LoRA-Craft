@@ -311,17 +311,3 @@ Requires Rust toolchain installed locally:
 npm run tauri dev    # Development
 npm run tauri build  # Production build
 ```
-
-## Recent Changes
-
-### December 2024
-- Visual redesign: Windows 11-style dark theme with glass effects
-- Added custom TitleBar component for native window appearance
-- Added Tauri v2 scaffolding as alternative to Electron
-- Implemented surface levels system for visual depth
-- Added micro-animations and smooth transitions throughout
-- Added Settings page (`/settings`) with API key management
-- Implemented search engine integration service (Brave, Bing, Google)
-- Created Replicate.com integration for LoRA training
-- Set up Electron build configuration for Windows installer
-- Added Settings link to sidebar navigation
