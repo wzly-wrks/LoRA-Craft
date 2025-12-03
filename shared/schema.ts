@@ -111,6 +111,18 @@ export const updateImageSchema = z.object({
   flaggedDuplicate: z.boolean().optional(),
 });
 
+export const updateWorkspaceSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().max(1000).optional(),
+});
+
+export const updateDatasetSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().max(1000).optional(),
+  status: z.enum(["active", "archived"]).optional(),
+  targetAspectRatio: z.string().optional(),
+});
+
 export type Workspace = typeof workspaces.$inferSelect;
 export type InsertWorkspace = z.infer<typeof insertWorkspaceSchema>;
 export type Dataset = typeof datasets.$inferSelect;

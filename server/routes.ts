@@ -9,6 +9,8 @@ import {
   insertWorkspaceSchema,
   insertDatasetSchema,
   updateImageSchema,
+  updateWorkspaceSchema,
+  updateDatasetSchema,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -69,14 +71,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/workspaces/:id", async (req: Request, res: Response) => {
     try {
-      const workspace = await storage.updateWorkspace(req.params.id, req.body);
+      const data = updateWorkspaceSchema.parse(req.body);
+      const workspace = await storage.updateWorkspace(req.params.id, data);
       if (!workspace) {
         return res.status(404).json({ error: "Workspace not found" });
       }
       res.json(workspace);
     } catch (error) {
-      console.error("Error updating workspace:", error);
-      res.status(500).json({ error: "Failed to update workspace" });
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        console.error("Error updating workspace:", error);
+        res.status(500).json({ error: "Failed to update workspace" });
+      }
     }
   });
 
@@ -133,14 +140,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/datasets/:id", async (req: Request, res: Response) => {
     try {
-      const dataset = await storage.updateDataset(req.params.id, req.body);
+      const data = updateDatasetSchema.parse(req.body);
+      const dataset = await storage.updateDataset(req.params.id, data);
       if (!dataset) {
         return res.status(404).json({ error: "Dataset not found" });
       }
       res.json(dataset);
     } catch (error) {
-      console.error("Error updating dataset:", error);
-      res.status(500).json({ error: "Failed to update dataset" });
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: error.errors });
+      } else {
+        console.error("Error updating dataset:", error);
+        res.status(500).json({ error: "Failed to update dataset" });
+      }
     }
   });
 
