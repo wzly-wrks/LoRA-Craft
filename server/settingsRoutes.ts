@@ -17,10 +17,12 @@ interface Settings {
   openai: { apiKey: string };
   replicate: { apiKey: string };
   search: {
-    defaultEngine: 'brave' | 'bing' | 'google';
+    defaultEngine: 'brave' | 'bing' | 'google' | 'pinterest' | 'reddit';
     brave: { apiKey: string };
     bing: { apiKey: string };
     google: { apiKey: string; searchEngineId: string };
+    pinterest: { accessToken: string };
+    reddit: { clientId: string; clientSecret: string };
   };
   app: {
     defaultExportPath: string;
@@ -42,6 +44,11 @@ function getSettings(): Settings {
         google: { 
           apiKey: process.env.GOOGLE_API_KEY || '',
           searchEngineId: process.env.GOOGLE_CSE_ID || ''
+        },
+        pinterest: { accessToken: process.env.PINTEREST_ACCESS_TOKEN || '' },
+        reddit: { 
+          clientId: process.env.REDDIT_CLIENT_ID || '',
+          clientSecret: process.env.REDDIT_CLIENT_SECRET || ''
         }
       },
       app: {
@@ -56,7 +63,14 @@ function getSettings(): Settings {
   try {
     const stored = localDb.getSetting('app_settings');
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      if (!parsed.search.pinterest) {
+        parsed.search.pinterest = { accessToken: '' };
+      }
+      if (!parsed.search.reddit) {
+        parsed.search.reddit = { clientId: '', clientSecret: '' };
+      }
+      return parsed;
     }
   } catch (e) {
     console.error('Error loading settings:', e);
@@ -69,7 +83,9 @@ function getSettings(): Settings {
       defaultEngine: 'brave',
       brave: { apiKey: '' },
       bing: { apiKey: '' },
-      google: { apiKey: '', searchEngineId: '' }
+      google: { apiKey: '', searchEngineId: '' },
+      pinterest: { accessToken: '' },
+      reddit: { clientId: '', clientSecret: '' }
     },
     app: {
       defaultExportPath: '',
@@ -101,6 +117,13 @@ export function registerSettingsRoutes(app: Express): void {
           google: {
             apiKey: settings.search.google.apiKey ? '***configured***' : '',
             searchEngineId: settings.search.google.searchEngineId || ''
+          },
+          pinterest: { 
+            accessToken: settings.search.pinterest.accessToken ? '***configured***' : '' 
+          },
+          reddit: {
+            clientId: settings.search.reddit.clientId ? '***configured***' : '',
+            clientSecret: settings.search.reddit.clientSecret ? '***configured***' : ''
           }
         }
       };
@@ -146,6 +169,19 @@ export function registerSettingsRoutes(app: Express): void {
             searchEngineId: updates.search?.google?.searchEngineId !== undefined
               ? updates.search.google.searchEngineId
               : currentSettings.search.google.searchEngineId
+          },
+          pinterest: {
+            accessToken: updates.search?.pinterest?.accessToken !== undefined
+              ? updates.search.pinterest.accessToken
+              : currentSettings.search.pinterest.accessToken
+          },
+          reddit: {
+            clientId: updates.search?.reddit?.clientId !== undefined
+              ? updates.search.reddit.clientId
+              : currentSettings.search.reddit.clientId,
+            clientSecret: updates.search?.reddit?.clientSecret !== undefined
+              ? updates.search.reddit.clientSecret
+              : currentSettings.search.reddit.clientSecret
           }
         },
         app: {
@@ -227,7 +263,9 @@ export function registerSettingsRoutes(app: Express): void {
       const config: SearchEngineConfig = {
         brave: settings.search.brave,
         bing: settings.search.bing,
-        google: settings.search.google
+        google: settings.search.google,
+        pinterest: settings.search.pinterest,
+        reddit: settings.search.reddit
       };
 
       const results = await searchImages(query, searchEngine, config, { count, offset });
