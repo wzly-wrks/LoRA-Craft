@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useUpdateImage, useDeleteImage } from "@/hooks/useImages";
 import { useToast } from "@/hooks/use-toast";
 import { api, type ImageWithUrl } from "@/lib/api";
@@ -21,6 +22,7 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
   const [caption, setCaption] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { toast } = useToast();
 
   const updateImage = useUpdateImage();
@@ -86,8 +88,12 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
     }
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this image?")) return;
+    setShowDeleteConfirm(false);
     try {
       await deleteImage.mutateAsync(image.id);
       toast({ title: "Image deleted successfully" });
@@ -288,7 +294,7 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
             disabled={deleteImage.isPending}
             className="h-[41px] w-[41px]"
             style={{ backgroundColor: "#2a2a2a" }}
@@ -298,6 +304,18 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
           </Button>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete Image?"
+        message="Are you sure you want to delete this image? This action cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+        isLoading={deleteImage.isPending}
+        variant="destructive"
+      />
     </aside>
   );
 }
