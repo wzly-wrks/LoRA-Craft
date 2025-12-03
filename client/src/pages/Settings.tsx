@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Check, X, Key, Search, Cpu, Settings2, ArrowLeft } from "lucide-react";
+import { Loader2, Check, X, Key, Search, Cpu, Settings2, ArrowLeft, XIcon } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -128,16 +128,23 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen p-6" style={{ backgroundColor: "#0f0f0f" }}>
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <Link href="/">
+              <Button variant="ghost" size="icon" data-testid="button-back">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Settings</h1>
+              <p className="text-neutral-400">Configure API keys, search engines, and app preferences</p>
+            </div>
+          </div>
           <Link href="/">
-            <Button variant="ghost" size="icon" data-testid="button-back">
-              <ArrowLeft className="w-5 h-5" />
+            <Button variant="ghost" size="icon" data-testid="button-close-settings">
+              <XIcon className="w-5 h-5" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Settings</h1>
-            <p className="text-neutral-400">Configure API keys, search engines, and app preferences</p>
-          </div>
         </div>
 
         <Tabs defaultValue="api" className="space-y-4">
