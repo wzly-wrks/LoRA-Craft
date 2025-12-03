@@ -5,7 +5,55 @@
 /* ================================================
    WINDOWS 11 INSPIRED DARK THEME
    Modern, professional, glass-effect styling
+   Native Desktop Application Feel
    ================================================ */
+
+/* Desktop App Behavior - Disable web-like interactions */
+* {
+  /* Prevent text selection globally except in inputs/textareas */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  /* Disable touch callout on mobile/touch */
+  -webkit-touch-callout: none;
+  /* Disable tap highlight on touch devices */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Allow text selection in inputs, textareas, and content areas */
+input, textarea, [contenteditable="true"], .selectable, pre, code {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Prevent image dragging */
+img {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+  pointer-events: auto;
+}
+
+/* Hide browser-specific focus outlines, use custom ones */
+:focus {
+  outline: none;
+}
+
+/* Disable overscroll bounce effect */
+html, body {
+  overscroll-behavior: none;
+  overflow: hidden;
+}
+
+/* Prevent pull-to-refresh */
+body {
+  touch-action: pan-x pan-y;
+}
 
 @layer components {
   .all-\[unset\] {

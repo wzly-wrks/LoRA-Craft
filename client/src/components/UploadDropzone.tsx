@@ -82,6 +82,7 @@ export function UploadDropzone({ datasetId, onUploadComplete, compact }: UploadD
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        data-dropzone
         className={`w-full h-full flex flex-col items-center justify-center cursor-pointer transition-colors ${
           isDragging ? "bg-[#2a2a2a]" : ""
         }`}
@@ -110,6 +111,7 @@ export function UploadDropzone({ datasetId, onUploadComplete, compact }: UploadD
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      data-dropzone
       className={`w-full max-w-md p-8 border-2 border-dashed rounded-lg cursor-pointer transition-all ${
         isDragging
           ? "border-[#ff58a5] bg-[#ff58a5]/10"

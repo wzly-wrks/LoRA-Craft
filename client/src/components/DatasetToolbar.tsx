@@ -230,6 +230,7 @@ export function DatasetToolbar({
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search images..."
           className="h-8 border-0 rounded-md surface-3 pr-10 text-secondary transition-smooth input-glow focus:text-primary-emphasis"
+          autoComplete="off"
           data-testid="input-search"
         />
         <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary transition-smooth" />

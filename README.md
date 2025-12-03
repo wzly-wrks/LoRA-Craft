@@ -1,53 +1,208 @@
 # LoRA Craft
 
+<p align="center">
+  <img src="client/public/figmaAssets/lora-craft-1.png" alt="LoRA Craft Logo" width="200">
+</p>
+
+<p align="center">
+  <strong>A professional desktop application for building high-quality LoRA training datasets</strong>
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#search-engine-integrations">Search Engines</a> •
+  <a href="#privacy--ethics">Privacy & Ethics</a> •
+  <a href="#license">License</a>
+</p>
+
+---
+
 ## Overview
 
 LoRA Craft is an end-to-end dataset builder designed for training LoRA (Low-Rank Adaptation) image models for systems like Flux and SDXL. The application provides a complete workflow for collecting, organizing, cleaning, and preparing image datasets, then exporting them for model training or pushing them directly to Replicate.com for training.
 
 The application follows a workspace-based organization where users create workspaces (called "Concepts") containing multiple datasets. Each dataset consists of images with associated metadata (captions, tags, aspect ratios) that can be cleaned, deduplicated, and prepared according to LoRA training best practices.
 
-## Getting Started
+## Features
 
-### Installation
+- **Multi-Engine Web Image Search**: Search for images across multiple search engines (Brave, Bing, Google, Pinterest, Reddit)
+- **User-Controlled Search**: Users manually initiate all searches and select which images to download
+- **Drag & Drop Upload**: Easily add local images to your datasets
+- **Auto-Captioning**: Generate captions using AI (requires OpenAI API key)
+- **Duplicate Detection**: Automatically detect and flag duplicate images using SHA-256 hashing
+- **Dataset Export**: Export datasets in LoRA-ready format
+- **Replicate Integration**: Train models directly on Replicate.com
+- **Native Desktop App**: Built with Tauri for a fast, native experience
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. For desktop mode (Tauri), ensure you have [Rust](https://www.rust-lang.org/tools/install) installed.
+## Installation
 
-### Running the Application
+### Prerequisites
 
-**Development (Desktop - Recommended):**
+- [Node.js](https://nodejs.org/) v18 or later
+- [Rust](https://www.rust-lang.org/tools/install) (for desktop builds)
+
+### Quick Start
+
 ```bash
+# Clone the repository
+git clone https://github.com/your-username/lora-craft.git
+cd lora-craft
+
+# Install dependencies
+npm install
+
+# Run in development mode (Desktop)
 npm run tauri:dev
-```
 
-**Development (Web):**
-```bash
+# Or run in web mode
 npm run dev
 ```
 
-**Production Build:**
+### Production Build
+
 ```bash
 npm run tauri:build
 ```
 
-## Features
+## Project Structure
 
-- **Web Image Search**: Search for images across multiple search engines (Brave, Bing, Google, Pinterest, Reddit)
-- **Drag & Drop Upload**: Easily add local images to your datasets
-- **Auto-Captioning**: Generate captions using AI (requires OpenAI API key)
-- **Duplicate Detection**: Automatically detect and flag duplicate images
-- **Dataset Export**: Export datasets in LoRA-ready format
-- **Replicate Integration**: Train models directly on Replicate.com
+```
+LoRA-Craft/
+├── client/                 # React frontend (TypeScript + Vite)
+│   ├── src/
+│   │   ├── components/     # UI components
+│   │   ├── hooks/          # React hooks
+│   │   ├── pages/          # Page components
+│   │   └── lib/            # Utilities & API client
+├── server/                 # Express.js backend
+│   ├── searchEngines.ts    # Search engine integrations
+│   ├── routes.ts           # API routes
+│   ├── settingsRoutes.ts   # Settings management
+│   └── localDatabase.ts    # SQLite database
+├── shared/                 # Shared types & schemas
+│   └── schema.ts           # Drizzle ORM schemas
+├── src-tauri/              # Tauri desktop app configuration
+├── LICENSE                 # MIT License
+└── README.md
+```
 
-## Search Engine API Keys
+## Search Engine Integrations
 
-To use the web image search feature, you'll need to obtain API keys for at least one search engine. Configure these in **Settings > Search Engines**.
+LoRA Craft integrates with multiple image search APIs to help users find reference images for their training datasets. **All search operations are user-initiated**—the application never performs automated or background searches.
 
-### Brave Search (Recommended - Free Tier Available)
+### Supported Search Engines
+
+| Engine | Free Tier | Rate Limits | Image Search |
+|--------|-----------|-------------|--------------|
+| [Brave Search](https://brave.com/search/api/) | 2,000/month | 1 req/sec | ✅ |
+| [Bing Image Search](https://azure.microsoft.com/en-us/services/cognitive-services/bing-image-search-api/) | 1,000/month | 3 req/sec | ✅ |
+| [Google Custom Search](https://developers.google.com/custom-search) | 100/day | 10 req/sec | ✅ |
+| [Pinterest](https://developers.pinterest.com/) | Varies | Per app | ✅ |
+| [Reddit](https://www.reddit.com/dev/api/) | Free | 60 req/min | ✅ |
+
+---
+
+## Reddit API Integration
+
+LoRA Craft uses the Reddit API to allow users to search for reference images within specific subreddits. This integration is designed with Reddit's API policies and user privacy in mind.
+
+### How It Works
+
+1. **User Authentication**: The app uses OAuth2 Client Credentials flow (application-only context)
+2. **User-Initiated Searches**: Users manually enter search queries and select subreddits
+3. **Subreddit Selection**: Users can specify which subreddits to search (e.g., `art, digitalpainting, ImaginaryLandscapes`)
+4. **Manual Image Selection**: Users review search results and manually select which images to add to their dataset
+5. **No Automated Scraping**: The app never performs bulk downloads or automated content collection
+
+### OAuth2 Implementation
+
+```
+Authentication Flow: Client Credentials Grant
+Token Endpoint: https://www.reddit.com/api/v1/access_token
+Search Endpoint: https://oauth.reddit.com/r/{subreddits}/search
+```
+
+**Key implementation details** (see `server/searchEngines.ts`):
+
+```typescript
+// OAuth2 token request
+const tokenResponse = await fetch("https://www.reddit.com/api/v1/access_token", {
+  method: "POST",
+  headers: {
+    "Authorization": `Basic ${base64Credentials}`,
+    "Content-Type": "application/x-www-form-urlencoded",
+    "User-Agent": "LoRACraft/1.0.0"
+  },
+  body: "grant_type=client_credentials"
+});
+```
+
+### Rate Limiting
+
+The application respects Reddit's rate limits:
+
+- **OAuth2 clients**: 60 requests per minute
+- **User-Agent**: Properly identified as `LoRACraft/1.0.0`
+- **Error Handling**: 429 responses are gracefully handled with user-friendly messages
+
+### User-Selected Subreddits
+
+Users can configure which subreddits to search in **Settings > Search Engines**:
+
+- Default: Searches all of Reddit
+- Custom: Users can specify subreddits like `art, wallpapers, EarthPorn` (comma-separated)
+- The app uses Reddit's `restrict_sr=true` parameter when subreddits are specified
+
+### Data Handling
+
+- **No Personal Data**: The app only accesses public posts and images
+- **No User Data Collection**: No Reddit user information is stored
+- **Local Storage**: Downloaded images are stored locally on the user's machine
+- **No Redistribution**: Images are for personal dataset creation only
+
+---
+
+## Privacy & Ethics
+
+### Data Collection Principles
+
+LoRA Craft is designed with privacy and ethical considerations at its core:
+
+1. **User-Driven Only**: All image searches and downloads are initiated manually by the user
+2. **No Mass Scraping**: The application does not perform bulk or automated downloads
+3. **No Personal Data**: We do not collect, store, or process any personal information from search results
+4. **Local-First**: All data (images, captions, settings) is stored locally on the user's device
+5. **No Telemetry**: The application does not send usage data or analytics to any server
+
+### Responsible Use Guidelines
+
+Users of LoRA Craft should:
+
+- **Respect Copyright**: Only use images that you have rights to use for training
+- **Credit Artists**: When possible, credit original creators of reference images
+- **Follow ToS**: Comply with the Terms of Service of all integrated search engines
+- **No Harmful Content**: Do not create datasets intended to produce harmful or illegal content
+- **Respect Rate Limits**: Do not circumvent or abuse API rate limits
+
+### API Compliance
+
+| Service | Compliance |
+|---------|------------|
+| Reddit API | ✅ OAuth2, proper User-Agent, rate limit respect |
+| Brave API | ✅ API key authentication, usage within limits |
+| Bing API | ✅ Azure Cognitive Services compliance |
+| Google API | ✅ Custom Search API guidelines |
+
+---
+
+## Configuration
+
+### API Keys Setup
+
+Navigate to **Settings > Search Engines** in the application to configure your API keys.
+
+#### Brave Search (Recommended - Free Tier Available)
 
 Brave Search offers a generous free tier with 2,000 queries/month.
 
@@ -125,7 +280,7 @@ Pinterest API access requires a Pinterest Business account and app approval.
 
 **Note**: Pinterest API access is more restrictive and may require app review approval.
 
-### Reddit
+#### Reddit
 
 Reddit API requires creating an app for OAuth2 credentials.
 
@@ -143,23 +298,25 @@ Reddit API requires creating an app for OAuth2 credentials.
    - **Client Secret**: The "secret" field
 6. Paste both in LoRA Craft Settings > Search Engines
 
-**Note**: Reddit API is free but has rate limits (60 requests/minute for OAuth2).
+**Rate Limits**: 60 requests/minute for OAuth2 clients. The application handles rate limit responses gracefully.
 
-### Recommended Setup
+**Subreddit Selection**: Optionally specify which subreddits to search (comma-separated) in Settings.
 
-For the best experience, we recommend setting up **Brave Search** first:
-- Easy signup process
-- Generous free tier (2,000 queries/month)
-- Good image search quality
-- Fast API response times
+---
 
-You can add additional search engines later for more variety in search results.
+## Technical Architecture
 
-## User Preferences
+### Stack Overview
 
-Preferred communication style: Simple, everyday language.
-
-## System Architecture
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 18 + TypeScript + Vite |
+| UI Components | TailwindCSS + shadcn/ui |
+| State Management | TanStack Query (React Query) |
+| Backend | Express.js + TypeScript |
+| Database | SQLite (desktop) / PostgreSQL (web) |
+| ORM | Drizzle ORM |
+| Desktop Framework | Tauri v2 (Rust) |
 
 ### Application Structure
 
@@ -197,269 +354,67 @@ Preferred communication style: Simple, everyday language.
 - Real-time image preview and metadata editing
 - Toast notifications for user feedback
 
-### Backend Architecture
+### Database & Storage
 
-**Framework**: Express.js with TypeScript
+**Desktop Mode (Tauri)**:
+- SQLite database for local storage (`server/localDatabase.ts`)
+- Local filesystem for images (`server/localFileStorage.ts`)
 
-**Database**: PostgreSQL via Neon serverless with Drizzle ORM
-- **Schema-first design**: All database schemas defined in `shared/schema.ts`
-- **Drizzle ORM** chosen for type-safe SQL queries and excellent TypeScript integration
-- **Migration management**: Using drizzle-kit for schema migrations
-
-**Key Database Tables**:
-- `workspaces`: Top-level organizational containers
-- `datasets`: Collections of images within workspaces
-- `images`: Individual images with metadata (captions, tags, dimensions, hashes)
-- `exports`: Export jobs and their status
-- `tasks`: Background task tracking (deduplication, captioning, etc.)
-
-**Rationale**: Drizzle provides compile-time type safety without code generation overhead, and its schema definition approach keeps types synchronized automatically. Neon serverless provides connection pooling and autoscaling.
-
-### File Storage Architecture
-
-**Primary Storage**: Google Cloud Storage via Replit's object storage sidecar
-- External account authentication using Replit's sidecar service
-- Stores original images and generated thumbnails
-- Bucket-based organization matching workspace/dataset hierarchy
-
-**Storage Service Pattern**: 
-- Abstract storage interface (`IStorage`) with concrete implementation
-- Separates business logic from storage implementation details
-- Enables future storage backend swaps if needed
-
-**File Processing**:
-- **Multer** for handling multipart/form-data uploads
-- In-memory buffering before cloud storage upload
-- SHA-256 hash generation for duplicate detection
-- Automatic thumbnail generation (implementation pending)
-
-**Rationale**: Cloud storage offloads file management from the database and enables CDN integration for faster image delivery. The sidecar pattern simplifies authentication in the Replit environment.
-
-### Data Validation
-
-**Zod Schema Validation**: End-to-end validation using Zod schemas
-- Schemas defined alongside Drizzle table definitions
-- Same schemas used for API request validation and TypeScript types
-- Automatic type inference eliminates manual type definitions
-
-**Validation Flow**:
-1. API receives request → 2. Zod validates payload → 3. Drizzle ensures DB type safety → 4. Response types auto-inferred
-
-**Rationale**: Single source of truth for data shapes. Zod schemas serve triple duty (runtime validation, TypeScript types, API documentation).
-
-### Image Processing Pipeline
-
-**Planned Features** (architecture in place, implementation in progress):
-
-1. **Deduplication**: SHA-256 hashing with database lookups to flag duplicates
-2. **Auto-captioning**: Integration points prepared for BLIP/LLaVA models
-3. **Aspect Ratio Enforcement**: Metadata tracking for target ratios
-4. **Face/Subject Cropping**: Planned integration with image processing libraries
-
-**Task System**: Background task tracking table for long-running operations
-- Status tracking (pending, running, completed, failed)
-- Progress percentage
-- Error logging
-
-### Export System
-
-**Dataset Export Structure**:
-- ZIP archive generation using `archiver` library
-- Industry-standard folder structure for LoRA training
-- Images + caption files + metadata JSON
-- Stored in cloud storage for download
-
-**Export Flow**:
-1. Create export record → 2. Package images and metadata → 3. Upload to storage → 4. Return download URL
+**Web Mode**:
+- PostgreSQL via Neon serverless
+- Cloud storage for files
 
 ### API Design
 
-**RESTful Conventions**:
-- Resource-oriented endpoints (`/api/workspaces`, `/api/datasets`, `/api/images`)
-- Standard HTTP methods (GET, POST, PATCH, DELETE)
-- Nested routes for resource relationships (`/api/workspaces/:id/datasets`)
+**RESTful Endpoints**:
+- `GET/POST/PATCH/DELETE /api/workspaces` - Workspace management
+- `GET/POST/PATCH/DELETE /api/datasets` - Dataset management  
+- `GET/POST/PATCH/DELETE /api/images` - Image management
+- `GET/PATCH /api/settings` - Application settings
+- `POST /api/search` - Web image search
 
-**Error Handling**:
-- Centralized error middleware
-- Consistent error response format
-- Status code conventions (400 validation, 404 not found, 500 server error)
+---
 
-**Request/Response Patterns**:
-- JSON payloads
-- Credential-based authentication (session cookies)
-- CORS configured for development
+## Building for Desktop
 
-## External Dependencies
+### Tauri (Recommended)
 
-### Cloud Services
+Requires [Rust](https://www.rust-lang.org/tools/install) toolchain:
 
-**Neon Database** (PostgreSQL):
-- Serverless PostgreSQL database
-- Connection via `@neondatabase/serverless` with WebSocket support
-- Environment variable: `DATABASE_URL`
-
-**Google Cloud Storage**:
-- Image and file storage
-- Accessed via Replit's object storage sidecar
-- Authentication through external account credentials
-- No direct GCP API keys needed (sidecar handles auth)
-
-### Planned Integrations
-
-**Replicate.com API**:
-- Architecture prepared for direct dataset upload
-- Training job submission and status tracking
-- Model URL retrieval after training completion
-- Implementation: HTTP client integration needed
-
-**Image Search APIs** (planned):
-- Google/Bing/Brave image search integration points
-- Architecture supports pluggable search providers
-
-**AI Captioning Services** (planned):
-- BLIP or LLaVA model integration for auto-captioning
-- Task-based processing for async caption generation
-
-### Development Tools
-
-**Vite**: Frontend build tool and dev server
-- HMR (Hot Module Replacement) in development
-- Optimized production builds
-- Replit-specific plugins for error overlays and dev tooling
-
-**Drizzle Kit**: Database migration tool
-- Schema synchronization via `db:push` command
-- Migration generation and management
-
-**TypeScript**: Type safety across entire stack
-- Strict mode enabled
-- ESNext module system
-- Path aliases for clean imports (`@/`, `@shared/`)
-
-### UI Component Libraries
-
-**shadcn/ui**: Pre-built accessible components
-- Based on Radix UI primitives
-- Full Radix UI component suite available (accordion, dialog, dropdown, etc.)
-- Customized with TailwindCSS
-
-**React Query**: Server state management
-- Automatic caching and revalidation
-- Optimistic updates
-- Query invalidation on mutations
-
-### File Processing
-
-**Multer**: Multipart form data handling
-- 50MB file size limit
-- Image-only file filtering
-- Memory storage for cloud upload pipeline
-
-**Archiver**: ZIP file generation for exports
-- Streaming archive creation
-- Efficient for large datasets
-
-### Build and Runtime
-
-**esbuild**: Server-side bundling for production
-- Fast compilation
-- ESM output format
-- External package handling
-
-**tsx**: Development TypeScript execution
-- Direct TS execution without compilation step
-- Used in `dev` script for hot reloading
-
-## Desktop Application Architecture (Electron)
-
-### Dual-Mode Architecture
-The application supports both web (cloud-based) and desktop (local) deployments:
-
-**Web Mode** (default):
-- PostgreSQL database via Neon
-- Google Cloud Storage for files
-- Deployed as web application
-
-**Desktop Mode** (Electron):
-- SQLite database for local storage (`server/localDatabase.ts`)
-- Local filesystem for images (`server/localFileStorage.ts`)
-- Packaged as Windows executable with installer
-
-### Electron Configuration
-- **Main Process**: `electron/main.ts` - Window management, IPC handlers, server process management
-- **Preload Script**: `electron/preload.ts` - Secure context bridge for renderer
-- **Build Config**: `electron-builder.json` - Windows NSIS installer configuration
-
-### Settings Management
-- **Electron Store**: Persistent settings storage using `electron-store`
-- **Settings API**: `/api/settings` endpoints for GET/PATCH operations
-- **Settings UI**: `/settings` page with tabbed interface (API Keys, Search Engines, Preferences)
-
-### Search Engine Integrations
-Located in `server/searchEngines.ts`:
-- **Brave Search**: Image search via Brave API
-- **Bing Image Search**: Azure Cognitive Services integration
-- **Google Custom Search**: Google CSE for image search
-
-### Replicate.com Integration
-Located in `server/replicateIntegration.ts`:
-- Dataset preparation for LoRA training
-- Training job submission and monitoring
-- Model retrieval after training completion
-
-## Visual Design System
-
-### Windows 11-Inspired Theme
-The application features a modern Windows 11-style dark theme with:
-
-**Surface Levels** (depth system):
-- `surface-0`: #0a0a0a (deepest/base)
-- `surface-1`: #0f0f0f 
-- `surface-2`: #141414
-- `surface-3`: #1a1a1a
-- `surface-4`: #1f1f1f (lightest)
-
-**Glass Effects**:
-- `glass`: Backdrop blur with semi-transparent backgrounds
-- `sidebar-glass`: For the navigation sidebar
-- `toolbar-glass`: For toolbars
-- `panel-glass`: For detail panels
-
-**Accent Color**:
-- Pink: hsl(330 85% 60%) / #ff58a5
-
-**Text Hierarchy**:
-- `text-primary-emphasis`: White for headings
-- `text-secondary`: 70% white for body text
-- `text-tertiary`: 50% white for captions
-
-**Animations**:
-- All transitions use CSS variables (--transition-fast, --transition-normal)
-- Easing: cubic-bezier(0.16, 1, 0.3, 1)
-- Key animations: fadeIn, slideInRight, slideInUp, scaleIn
-
-### Custom Title Bar
-Located at `client/src/components/TitleBar.tsx`:
-- Native Windows 11 appearance
-- Draggable region for window movement
-- Window controls (minimize, maximize, close)
-- Tauri-aware for native window management
-
-## Tauri Configuration (Desktop Build Alternative)
-
-### Files
-Located in `src-tauri/`:
-- `Cargo.toml`: Rust dependencies (Tauri v2)
-- `tauri.conf.json`: Build configuration
-- `src/lib.rs`: Rust commands (window controls, app paths)
-- `src/main.rs`: Entry point
-
-### Building with Tauri
-Requires Rust toolchain installed locally:
 ```bash
 npm run tauri dev    # Development
 npm run tauri build  # Production build
 ```
 
+---
 
-Built with ❤️ in ~/Los_Angeles by weezly.works & his army of robots.
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- [Tauri](https://tauri.app/) - Desktop framework
+- [shadcn/ui](https://ui.shadcn.com/) - UI components
+- [TanStack Query](https://tanstack.com/query) - Data fetching
+- [Drizzle ORM](https://orm.drizzle.team/) - Database ORM
+
+---
+
+<p align="center">
+  Built with ❤️ in Los Angeles by <a href="https://weezly.works">weezly.works</a>
+</p>

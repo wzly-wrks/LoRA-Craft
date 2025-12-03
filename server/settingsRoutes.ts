@@ -22,7 +22,7 @@ interface Settings {
     bing: { apiKey: string };
     google: { apiKey: string; searchEngineId: string };
     pinterest: { accessToken: string };
-    reddit: { clientId: string; clientSecret: string };
+    reddit: { clientId: string; clientSecret: string; subreddits: string };
   };
   app: {
     defaultExportPath: string;
@@ -48,7 +48,8 @@ function getSettings(): Settings {
         pinterest: { accessToken: process.env.PINTEREST_ACCESS_TOKEN || '' },
         reddit: { 
           clientId: process.env.REDDIT_CLIENT_ID || '',
-          clientSecret: process.env.REDDIT_CLIENT_SECRET || ''
+          clientSecret: process.env.REDDIT_CLIENT_SECRET || '',
+          subreddits: process.env.REDDIT_SUBREDDITS || ''
         }
       },
       app: {
@@ -68,7 +69,10 @@ function getSettings(): Settings {
         parsed.search.pinterest = { accessToken: '' };
       }
       if (!parsed.search.reddit) {
-        parsed.search.reddit = { clientId: '', clientSecret: '' };
+        parsed.search.reddit = { clientId: '', clientSecret: '', subreddits: '' };
+      }
+      if (!parsed.search.reddit.subreddits) {
+        parsed.search.reddit.subreddits = '';
       }
       return parsed;
     }
@@ -85,7 +89,7 @@ function getSettings(): Settings {
       bing: { apiKey: '' },
       google: { apiKey: '', searchEngineId: '' },
       pinterest: { accessToken: '' },
-      reddit: { clientId: '', clientSecret: '' }
+      reddit: { clientId: '', clientSecret: '', subreddits: '' }
     },
     app: {
       defaultExportPath: '',
@@ -123,7 +127,8 @@ export function registerSettingsRoutes(app: Express): void {
           },
           reddit: {
             clientId: settings.search.reddit.clientId ? '***configured***' : '',
-            clientSecret: settings.search.reddit.clientSecret ? '***configured***' : ''
+            clientSecret: settings.search.reddit.clientSecret ? '***configured***' : '',
+            subreddits: settings.search.reddit.subreddits || ''
           }
         }
       };
@@ -181,7 +186,10 @@ export function registerSettingsRoutes(app: Express): void {
               : currentSettings.search.reddit.clientId,
             clientSecret: updates.search?.reddit?.clientSecret !== undefined
               ? updates.search.reddit.clientSecret
-              : currentSettings.search.reddit.clientSecret
+              : currentSettings.search.reddit.clientSecret,
+            subreddits: updates.search?.reddit?.subreddits !== undefined
+              ? updates.search.reddit.subreddits
+              : currentSettings.search.reddit.subreddits || ''
           }
         },
         app: {
@@ -268,7 +276,9 @@ export function registerSettingsRoutes(app: Express): void {
         reddit: settings.search.reddit
       };
 
-      const results = await searchImages(query, searchEngine, config, { count, offset });
+      console.log(`[search] engine=${searchEngine}, query="${query}", count=${count}, offset=${offset}`);
+      const results = await searchImages(query, searchEngine, config, { count: count || 30, offset: offset || 0 });
+      console.log(`[search] returned ${results.length} results`);
       res.json(results);
     } catch (error) {
       console.error('Search error:', error);

@@ -22,7 +22,7 @@ interface Settings {
     bing: { apiKey: string };
     google: { apiKey: string; searchEngineId: string };
     pinterest: { accessToken: string };
-    reddit: { clientId: string; clientSecret: string };
+    reddit: { clientId: string; clientSecret: string; subreddits: string };
   };
   app: {
     defaultExportPath: string;
@@ -429,6 +429,19 @@ export default function SettingsPage() {
                     style={{ backgroundColor: "#2a2a2a" }}
                     data-testid="input-reddit-client-secret"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-neutral-200">Subreddits (Optional)</Label>
+                  <Input
+                    placeholder="e.g., pics, art, photography (comma separated)"
+                    value={getLocalValue("search.reddit.subreddits", "") as string}
+                    onChange={(e) => updateLocalSetting("search.reddit.subreddits", e.target.value)}
+                    style={{ backgroundColor: "#2a2a2a" }}
+                    data-testid="input-reddit-subreddits"
+                  />
+                  <p className="text-xs text-neutral-500">
+                    Leave empty to search all of Reddit, or specify subreddits to search (without r/)
+                  </p>
                 </div>
               </CardContent>
             </Card>

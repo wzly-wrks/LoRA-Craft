@@ -21,7 +21,7 @@ export interface SearchEngineConfig {
   bing?: { apiKey: string };
   google?: { apiKey: string; searchEngineId: string };
   pinterest?: { accessToken: string };
-  reddit?: { clientId: string; clientSecret: string };
+  reddit?: { clientId: string; clientSecret: string; subreddits?: string };
 }
 
 export async function searchBrave(
@@ -31,7 +31,8 @@ export async function searchBrave(
 ): Promise<SearchResult[]> {
   const count = options.count || 20;
   const offset = options.offset || 0;
-  const safeSearch = options.safeSearch || 'moderate';
+  // Brave only accepts 'off' or 'strict', default to 'off' for better results
+  const safeSearch = options.safeSearch === 'strict' ? 'strict' : 'off';
 
   const url = new URL('https://api.search.brave.com/res/v1/images/search');
   url.searchParams.set('q', query);
@@ -56,9 +57,11 @@ export async function searchBrave(
 
   if (data.results) {
     for (const item of data.results) {
+      const fullUrl = item.properties?.url || item.url;
       results.push({
-        url: item.properties?.url || item.url,
-        thumbnailUrl: item.thumbnail?.src || item.properties?.url || item.url,
+        url: fullUrl,
+        // Use full image URL for better quality preview
+        thumbnailUrl: fullUrl,
         title: item.title || '',
         width: item.properties?.width,
         height: item.properties?.height,
@@ -148,7 +151,8 @@ export async function searchGoogle(
     for (const item of data.items) {
       results.push({
         url: item.link,
-        thumbnailUrl: item.image?.thumbnailLink || item.link,
+        // Use the full image for better quality preview (thumbnailLink is very small)
+        thumbnailUrl: item.link,
         title: item.title || '',
         width: item.image?.width,
         height: item.image?.height,
@@ -212,17 +216,19 @@ export async function searchReddit(
   query: string,
   clientId: string,
   clientSecret: string,
-  options: { count?: number; safeSearch?: string } = {}
+  options: { count?: number; safeSearch?: string; subreddits?: string } = {}
 ): Promise<SearchResult[]> {
   const count = options.count || 25;
   
   const authString = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+  const userAgent = 'LoRACraft/1.0.0 (Desktop App for LoRA Training Dataset Creation; https://github.com/weezly/lora-craft)';
+  
   const tokenResponse = await fetch('https://www.reddit.com/api/v1/access_token', {
     method: 'POST',
     headers: {
       'Authorization': `Basic ${authString}`,
       'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': 'LoRACraft/1.0'
+      'User-Agent': userAgent
     },
     body: 'grant_type=client_credentials'
   });
@@ -235,8 +241,27 @@ export async function searchReddit(
   const tokenData = await tokenResponse.json() as any;
   const accessToken = tokenData.access_token;
 
-  const searchUrl = new URL('https://oauth.reddit.com/search');
-  searchUrl.searchParams.set('q', `${query} (site:i.redd.it OR site:imgur.com OR site:i.imgur.com)`);
+  // Build the search query
+  let searchQuery = `${query} (site:i.redd.it OR site:imgur.com OR site:i.imgur.com)`;
+  
+  // If subreddits specified, add subreddit filter
+  const subreddits = options.subreddits?.split(',').map(s => s.trim()).filter(s => s.length > 0);
+  let searchUrl: URL;
+  
+  if (subreddits && subreddits.length > 0) {
+    // Search within specific subreddits
+    const subredditPath = subreddits.length === 1 
+      ? `r/${subreddits[0]}` 
+      : `r/${subreddits.join('+')}`;
+    searchUrl = new URL(`https://oauth.reddit.com/${subredditPath}/search`);
+    searchUrl.searchParams.set('q', searchQuery);
+    searchUrl.searchParams.set('restrict_sr', 'true'); // Restrict to subreddit
+  } else {
+    // Search all of Reddit
+    searchUrl = new URL('https://oauth.reddit.com/search');
+    searchUrl.searchParams.set('q', searchQuery);
+  }
+  
   searchUrl.searchParams.set('type', 'link');
   searchUrl.searchParams.set('limit', count.toString());
   searchUrl.searchParams.set('sort', 'relevance');
@@ -249,7 +274,7 @@ export async function searchReddit(
   const searchResponse = await fetch(searchUrl.toString(), {
     headers: {
       'Authorization': `Bearer ${accessToken}`,
-      'User-Agent': 'LoRACraft/1.0'
+      'User-Agent': userAgent
     }
   });
 
@@ -341,7 +366,8 @@ export async function searchImages(
       }
       return searchReddit(query, config.reddit.clientId, config.reddit.clientSecret, { 
         count: options.count, 
-        safeSearch: options.safeSearch || 'moderate' 
+        safeSearch: options.safeSearch || 'moderate',
+        subreddits: config.reddit.subreddits
       });
 
     default:
