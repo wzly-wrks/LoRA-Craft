@@ -90,7 +90,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/workspaces/:id", async (req: Request, res: Response) => {
     try {
-      await storage.deleteWorkspace(req.params.id);
+      const deleted = await storage.deleteWorkspace(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Workspace not found" });
+      }
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting workspace:", error);
@@ -159,7 +162,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/datasets/:id", async (req: Request, res: Response) => {
     try {
-      await storage.deleteDataset(req.params.id);
+      const deleted = await storage.deleteDataset(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Dataset not found" });
+      }
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting dataset:", error);
@@ -289,7 +295,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await objectStorageService.deleteFile(image.thumbnailKey);
         }
       }
-      await storage.deleteImage(req.params.id);
+      const deleted = await storage.deleteImage(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Image not found" });
+      }
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting image:", error);

@@ -75,8 +75,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteWorkspace(id: string): Promise<boolean> {
-    const result = await db.delete(workspaces).where(eq(workspaces.id, id));
-    return true;
+    const deleted = await db
+      .delete(workspaces)
+      .where(eq(workspaces.id, id))
+      .returning({ id: workspaces.id });
+    return deleted.length > 0;
   }
 
   async getDatasets(workspaceId: string): Promise<Dataset[]> {
@@ -103,8 +106,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteDataset(id: string): Promise<boolean> {
-    await db.delete(datasets).where(eq(datasets.id, id));
-    return true;
+    const deleted = await db
+      .delete(datasets)
+      .where(eq(datasets.id, id))
+      .returning({ id: datasets.id });
+    return deleted.length > 0;
   }
 
   async getImages(datasetId: string): Promise<Image[]> {
@@ -131,8 +137,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteImage(id: string): Promise<boolean> {
-    await db.delete(images).where(eq(images.id, id));
-    return true;
+    const deleted = await db
+      .delete(images)
+      .where(eq(images.id, id))
+      .returning({ id: images.id });
+    return deleted.length > 0;
   }
 
   async getImagesByHash(hash: string, datasetId: string): Promise<Image[]> {
