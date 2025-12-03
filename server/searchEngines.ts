@@ -241,8 +241,9 @@ export async function searchReddit(
   searchUrl.searchParams.set('limit', count.toString());
   searchUrl.searchParams.set('sort', 'relevance');
   
-  if (options.safeSearch !== 'off') {
-    searchUrl.searchParams.set('restrict_sr', 'false');
+  const filterNSFW = options.safeSearch !== 'off';
+  if (filterNSFW) {
+    searchUrl.searchParams.set('include_over_18', 'false');
   }
 
   const searchResponse = await fetch(searchUrl.toString(), {
@@ -279,7 +280,10 @@ export async function searchReddit(
                       imageUrl?.includes('i.redd.it') ||
                       imageUrl?.includes('i.imgur.com');
 
-      if (isImage && imageUrl) {
+      const isNSFW = post.over_18 === true;
+      const shouldInclude = isImage && imageUrl && (!filterNSFW || !isNSFW);
+
+      if (shouldInclude) {
         results.push({
           url: imageUrl,
           thumbnailUrl: post.thumbnail && post.thumbnail !== 'self' && post.thumbnail !== 'default' 
@@ -299,7 +303,7 @@ export async function searchImages(
   query: string,
   engine: 'brave' | 'bing' | 'google' | 'pinterest' | 'reddit',
   config: SearchEngineConfig,
-  options: { count?: number; offset?: number } = {}
+  options: { count?: number; offset?: number; safeSearch?: string } = {}
 ): Promise<SearchResult[]> {
   switch (engine) {
     case 'brave':
@@ -322,7 +326,7 @@ export async function searchImages(
         query,
         config.google.apiKey,
         config.google.searchEngineId,
-        { count: options.count, start: options.offset }
+        { count: options.count, start: options.offset, safeSearch: options.safeSearch }
       );
 
     case 'pinterest':
@@ -335,7 +339,10 @@ export async function searchImages(
       if (!config.reddit?.clientId || !config.reddit?.clientSecret) {
         throw new Error('Reddit client ID or secret not configured');
       }
-      return searchReddit(query, config.reddit.clientId, config.reddit.clientSecret, { count: options.count });
+      return searchReddit(query, config.reddit.clientId, config.reddit.clientSecret, { 
+        count: options.count, 
+        safeSearch: options.safeSearch || 'moderate' 
+      });
 
     default:
       throw new Error(`Unknown search engine: ${engine}`);
