@@ -460,4 +460,6 @@ Requires Rust toolchain installed locally:
 npm run tauri dev    # Development
 npm run tauri build  # Production build
 ```
-### Built with ❤️ in ~/Los_Angeles by weezly.works & his army of robots.
+
+
+Built with ❤️ in ~/Los_Angeles by weezly.works & his army of robots.
