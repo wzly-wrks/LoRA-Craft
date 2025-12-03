@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { TitleBar } from "@/components/TitleBar";
 import { Sidebar } from "@/components/Sidebar";
 import { ImageGrid } from "@/components/ImageGrid";
 import { DetailPanel } from "@/components/DetailPanel";
@@ -30,7 +31,7 @@ export const Desktop = (): JSX.Element => {
   const [modalType, setModalType] = useState<ModalType>(null);
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
-  const [sidebarWidth, setSidebarWidth] = useState(202);
+  const [sidebarWidth, setSidebarWidth] = useState(220);
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -187,8 +188,10 @@ export const Desktop = (): JSX.Element => {
   };
 
   return (
-    <div className="w-full min-w-[1440px] min-h-screen" style={{ backgroundColor: "#000000" }}>
-      <div className="flex w-full h-screen overflow-hidden relative">
+    <div className="w-full min-h-screen flex flex-col surface-0">
+      <TitleBar />
+      
+      <div className="flex flex-1 overflow-hidden relative">
         <div 
           className="relative flex-shrink-0"
           style={{ width: sidebarWidth }}
@@ -207,21 +210,23 @@ export const Desktop = (): JSX.Element => {
           <div
             ref={resizeRef}
             onMouseDown={handleMouseDown}
-            className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-[#ff58a5] transition-colors z-10"
-            style={{ 
-              backgroundColor: isResizing ? "#ff58a5" : "transparent" 
-            }}
+            className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize z-20 group"
             data-testid="sidebar-resize-handle"
-          />
+          >
+            <div 
+              className="w-full h-full transition-colors"
+              style={{ 
+                backgroundColor: isResizing ? "hsl(330 85% 60%)" : "transparent" 
+              }}
+            />
+            <div 
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ backgroundColor: "hsl(330 85% 60% / 0.5)" }}
+            />
+          </div>
         </div>
 
-        <main
-          className="flex-1 flex flex-col border border-solid"
-          style={{
-            backgroundColor: "#0f0f0f",
-            borderColor: "#3a3a3a",
-          }}
-        >
+        <main className="flex-1 flex flex-col surface-1 overflow-hidden">
           <DatasetToolbar
             datasets={currentWorkspaceDatasets}
             selectedDatasetId={selectedDatasetId}
@@ -248,40 +253,39 @@ export const Desktop = (): JSX.Element => {
       </div>
 
       <Dialog open={modalType === "workspace"} onOpenChange={(open) => !open && handleCloseModal()}>
-        <DialogContent style={{ backgroundColor: "#1a1a1a", borderColor: "#3a3a3a" }}>
+        <DialogContent className="glass border-glow animate-scale-in">
           <DialogHeader>
-            <DialogTitle className="text-white">Create New Concept</DialogTitle>
+            <DialogTitle className="text-primary-emphasis text-lg">Create New Concept</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name" className="text-white">Name</Label>
+              <Label htmlFor="name" className="text-secondary text-sm">Name</Label>
               <Input
                 id="name"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="My Concept"
-                className="border-0"
-                style={{ backgroundColor: "#2a2a2a" }}
+                className="surface-3 border-0 focus:ring-1 input-glow transition-smooth"
                 data-testid="input-workspace-name"
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="description" className="text-white">Description</Label>
+              <Label htmlFor="description" className="text-secondary text-sm">Description</Label>
               <Textarea
                 id="description"
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
                 placeholder="Optional description..."
-                className="border-0 resize-none"
-                style={{ backgroundColor: "#2a2a2a" }}
+                className="surface-3 border-0 resize-none focus:ring-1 input-glow transition-smooth"
                 data-testid="input-workspace-description"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button
               variant="ghost"
               onClick={handleCloseModal}
+              className="transition-smooth"
               data-testid="button-cancel-workspace"
             >
               Cancel
@@ -289,7 +293,7 @@ export const Desktop = (): JSX.Element => {
             <Button
               onClick={handleCreateWorkspace}
               disabled={createWorkspace.isPending}
-              style={{ backgroundColor: "#ff58a5" }}
+              className="accent-pink transition-smooth"
               data-testid="button-create-workspace"
             >
               {createWorkspace.isPending ? "Creating..." : "Create Concept"}
@@ -299,40 +303,39 @@ export const Desktop = (): JSX.Element => {
       </Dialog>
 
       <Dialog open={modalType === "dataset"} onOpenChange={(open) => !open && handleCloseModal()}>
-        <DialogContent style={{ backgroundColor: "#1a1a1a", borderColor: "#3a3a3a" }}>
+        <DialogContent className="glass border-glow animate-scale-in">
           <DialogHeader>
-            <DialogTitle className="text-white">Create First Dataset</DialogTitle>
+            <DialogTitle className="text-primary-emphasis text-lg">Create First Dataset</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4 py-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="dataset-name" className="text-white">Dataset Name</Label>
+              <Label htmlFor="dataset-name" className="text-secondary text-sm">Dataset Name</Label>
               <Input
                 id="dataset-name"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="Training Set"
-                className="border-0"
-                style={{ backgroundColor: "#2a2a2a" }}
+                className="surface-3 border-0 focus:ring-1 input-glow transition-smooth"
                 data-testid="input-dataset-name"
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="dataset-description" className="text-white">Description</Label>
+              <Label htmlFor="dataset-description" className="text-secondary text-sm">Description</Label>
               <Textarea
                 id="dataset-description"
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
                 placeholder="Optional description..."
-                className="border-0 resize-none"
-                style={{ backgroundColor: "#2a2a2a" }}
+                className="surface-3 border-0 resize-none focus:ring-1 input-glow transition-smooth"
                 data-testid="input-dataset-description"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button
               variant="ghost"
               onClick={handleCloseModal}
+              className="transition-smooth"
               data-testid="button-cancel-dataset"
             >
               Skip for now
@@ -340,7 +343,7 @@ export const Desktop = (): JSX.Element => {
             <Button
               onClick={handleCreateDataset}
               disabled={createDataset.isPending}
-              style={{ backgroundColor: "#ff58a5" }}
+              className="accent-pink transition-smooth"
               data-testid="button-create-dataset"
             >
               {createDataset.isPending ? "Creating..." : "Create Dataset"}

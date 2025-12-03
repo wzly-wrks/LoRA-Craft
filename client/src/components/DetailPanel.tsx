@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -184,50 +183,27 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
 
   return (
     <aside
-      className="absolute right-0 top-0 w-[322px] h-full border-l border-solid flex flex-col z-20"
-      style={{
-        backgroundColor: "#121212",
-        borderColor: "#2c2c2c33",
-        boxShadow: "-8px 0 32px rgba(0, 0, 0, 0.5), -2px 0 8px rgba(0, 0, 0, 0.3)",
-        animation: "slideInRight 0.25s ease-out",
-      }}
+      className="absolute right-0 top-0 w-[322px] h-full panel-glass flex flex-col z-20 animate-slide-in-right"
       data-testid="detail-panel"
     >
-      <style>{`
-        @keyframes slideInRight {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-      `}</style>
-      <header className="h-[60px] flex items-center justify-center relative px-6">
-        <h2 className="text-[#e8e8e8] text-base font-medium text-center">
+      <header className="h-[60px] flex items-center justify-center relative px-6 border-b border-white/5">
+        <h2 className="text-primary-emphasis text-base font-medium text-center">
           Image Details
         </h2>
         <Button
           variant="ghost"
+          size="icon"
           onClick={onClose}
-          className="absolute right-6 top-1/2 -translate-y-1/2 h-auto w-auto p-0"
+          className="absolute right-4 top-1/2 -translate-y-1/2 transition-smooth interactive"
           data-testid="button-close-panel"
         >
-          <XIcon className="w-5 h-5 text-white" />
+          <XIcon className="w-5 h-5 text-secondary" />
         </Button>
       </header>
 
       <div className="flex-1 px-6 py-6 flex flex-col gap-6 overflow-auto">
-        <Card
-          className="w-full h-[244px] border border-solid shadow-[0px_4px_4px_#00000040] rounded-lg"
-          style={{
-            backgroundColor: "#1e1e1e",
-            borderColor: "#2a2a2a",
-          }}
-        >
-          <CardContent className="h-full flex items-center justify-center p-0">
+        <div className="card-elevated w-full h-[244px] rounded-lg overflow-hidden">
+          <div className="h-full flex items-center justify-center surface-2">
             {image.url ? (
               <img
                 src={image.url}
@@ -235,36 +211,35 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
                 className="max-w-full max-h-full object-contain"
               />
             ) : (
-              <ImageIcon className="w-12 h-12 text-neutral-500" />
+              <ImageIcon className="w-12 h-12 text-tertiary" />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <section>
-          <h3 className="text-white text-base font-medium mb-3">Info</h3>
+          <h3 className="text-primary-emphasis text-base font-medium mb-3">Info</h3>
           <div className="flex flex-col gap-1.5">
             {imageInfo.map((info, index) => (
               <p
                 key={index}
-                className="text-[#bfbfbf] text-[13px]"
+                className="text-secondary text-[13px]"
                 data-testid={`info-${info.label.toLowerCase()}`}
               >
-                {info.label}: {info.value}
+                <span className="text-tertiary">{info.label}:</span> {info.value}
               </p>
             ))}
           </div>
         </section>
 
         <section>
-          <h3 className="text-white text-base font-medium mb-3">Image Tools</h3>
+          <h3 className="text-primary-emphasis text-base font-medium mb-3">Image Tools</h3>
           <div className="flex gap-2">
             <Button
               size="sm"
               variant="ghost"
               onClick={() => setShowResizeDialog(true)}
               disabled={resizeImage.isPending}
-              className="flex-1 h-8 text-xs"
-              style={{ backgroundColor: "#2a2a2a" }}
+              className="flex-1 h-8 text-xs surface-3 transition-smooth interactive"
               data-testid="button-resize"
             >
               {resizeImage.isPending ? (
@@ -279,8 +254,7 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
               variant="ghost"
               onClick={handleRemoveBackground}
               disabled={removeBackground.isPending}
-              className="flex-1 h-8 text-xs"
-              style={{ backgroundColor: "#2a2a2a" }}
+              className="flex-1 h-8 text-xs surface-3 transition-smooth interactive"
               data-testid="button-remove-bg"
             >
               {removeBackground.isPending ? (
@@ -294,15 +268,14 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
         </section>
 
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-white text-base font-medium">Tags</h3>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h3 className="text-primary-emphasis text-base font-medium">Tags</h3>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => generateTags.mutate(image.id)}
               disabled={generateTags.isPending}
-              className="h-7 px-2 text-xs"
-              style={{ backgroundColor: "#2a2a2a" }}
+              className="h-7 px-2 text-xs surface-3 transition-smooth interactive"
               data-testid="button-generate-tags"
             >
               {generateTags.isPending ? (
@@ -318,13 +291,12 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
               <Badge
                 key={index}
                 variant="secondary"
-                className="rounded-xl px-3 py-1 h-auto text-sm cursor-pointer"
-                style={{ backgroundColor: "#2a2a2a" }}
+                className="badge-subtle rounded-md px-3 py-1 h-auto text-sm cursor-pointer transition-smooth"
                 onClick={() => removeTag(tag)}
                 data-testid={`tag-${tag}`}
               >
                 {tag}
-                <XIcon className="w-3 h-3 ml-1" />
+                <XIcon className="w-3 h-3 ml-1.5 text-tertiary" />
               </Badge>
             ))}
           </div>
@@ -334,15 +306,14 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
               onChange={(e) => setNewTag(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addTag()}
               placeholder="Add tag..."
-              className="flex-1 h-8 border-0 rounded-lg"
-              style={{ backgroundColor: "#2a2a2a" }}
+              className="flex-1 h-8 border-0 rounded-md surface-3 input-glow transition-smooth"
               data-testid="input-new-tag"
             />
             <Button
               size="icon"
               variant="ghost"
               onClick={addTag}
-              style={{ backgroundColor: "#2a2a2a" }}
+              className="surface-3 transition-smooth interactive"
               data-testid="button-add-tag"
             >
               <Plus className="w-4 h-4" />
@@ -351,15 +322,14 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
         </section>
 
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-white text-base font-medium">Caption</h3>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h3 className="text-primary-emphasis text-base font-medium">Caption</h3>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => generateCaption.mutate(image.id)}
               disabled={generateCaption.isPending}
-              className="h-7 px-2 text-xs"
-              style={{ backgroundColor: "#2a2a2a" }}
+              className="h-7 px-2 text-xs surface-3 transition-smooth interactive"
               data-testid="button-generate-caption"
             >
               {generateCaption.isPending ? (
@@ -374,8 +344,7 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             placeholder="Write a caption..."
-            className="w-full h-[100px] border border-solid rounded-lg shadow-[0px_4px_4px_#0000001a] resize-none text-sm"
-            style={{ backgroundColor: "#2a2a2a" }}
+            className="w-full h-[100px] border border-white/5 rounded-md surface-2 resize-none text-sm input-glow transition-smooth"
             data-testid="textarea-caption"
           />
         </section>
@@ -384,8 +353,7 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
           <Button
             onClick={handleSave}
             disabled={updateImage.isPending}
-            className="flex-1 h-[41px] rounded-lg shadow-[0px_2px_6px_#00000026] text-white text-base font-semibold"
-            style={{ backgroundColor: "#3a3a3a" }}
+            className="flex-1 h-[41px] rounded-md accent-pink text-white text-base font-semibold transition-smooth"
             data-testid="button-save"
           >
             {updateImage.isPending ? "Saving..." : "Save Changes"}
@@ -395,8 +363,7 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
             size="icon"
             onClick={handleDeleteClick}
             disabled={deleteImage.isPending}
-            className="h-[41px] w-[41px]"
-            style={{ backgroundColor: "#2a2a2a" }}
+            className="h-[41px] w-[41px] surface-3 transition-smooth interactive"
             data-testid="button-delete"
           >
             <Trash2 className="w-5 h-5 text-red-400" />
@@ -405,17 +372,17 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
       </div>
 
       <Dialog open={showResizeDialog} onOpenChange={setShowResizeDialog}>
-        <DialogContent style={{ backgroundColor: "#1a1a1a", borderColor: "#2a2a2a" }}>
+        <DialogContent className="surface-1 border-white/10">
           <DialogHeader>
-            <DialogTitle className="text-white">Resize Image</DialogTitle>
-            <DialogDescription className="text-neutral-400">
+            <DialogTitle className="text-primary-emphasis">Resize Image</DialogTitle>
+            <DialogDescription className="text-tertiary">
               Choose a training preset or enter custom dimensions
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div>
-              <Label className="text-neutral-300 text-sm mb-2 block">Training Presets</Label>
+              <Label className="text-secondary text-sm mb-2 block">Training Presets</Label>
               <Select value={selectedPreset} onValueChange={(v) => {
                 setSelectedPreset(v);
                 if (v !== "custom") {
@@ -424,13 +391,12 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
                 }
               }}>
                 <SelectTrigger 
-                  className="w-full border-0" 
-                  style={{ backgroundColor: "#2a2a2a" }}
+                  className="w-full border-0 surface-3 transition-smooth" 
                   data-testid="select-resize-preset"
                 >
                   <SelectValue placeholder="Select a preset..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="surface-2 border-white/10">
                   {trainingPresets?.map((preset) => (
                     <SelectItem key={preset.name} value={preset.name}>
                       {preset.name} ({preset.width}x{preset.height})
@@ -444,26 +410,24 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
             {selectedPreset === "custom" && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-neutral-400 text-xs mb-1 block">Width (px)</Label>
+                  <Label className="text-tertiary text-xs mb-1 block">Width (px)</Label>
                   <Input
                     type="number"
                     value={customWidth}
                     onChange={(e) => setCustomWidth(e.target.value)}
                     placeholder="1024"
-                    className="border-0"
-                    style={{ backgroundColor: "#2a2a2a" }}
+                    className="border-0 surface-3 input-glow transition-smooth"
                     data-testid="input-resize-width"
                   />
                 </div>
                 <div>
-                  <Label className="text-neutral-400 text-xs mb-1 block">Height (px)</Label>
+                  <Label className="text-tertiary text-xs mb-1 block">Height (px)</Label>
                   <Input
                     type="number"
                     value={customHeight}
                     onChange={(e) => setCustomHeight(e.target.value)}
                     placeholder="1024"
-                    className="border-0"
-                    style={{ backgroundColor: "#2a2a2a" }}
+                    className="border-0 surface-3 input-glow transition-smooth"
                     data-testid="input-resize-height"
                   />
                 </div>
@@ -471,7 +435,7 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
             )}
 
             {selectedPreset && selectedPreset !== "custom" && (
-              <div className="text-sm text-neutral-400">
+              <div className="text-sm text-tertiary">
                 {trainingPresets?.find(p => p.name === selectedPreset)?.description}
               </div>
             )}
@@ -481,6 +445,7 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
             <Button 
               variant="ghost" 
               onClick={() => setShowResizeDialog(false)}
+              className="surface-3 transition-smooth interactive"
               data-testid="button-resize-cancel"
             >
               Cancel
@@ -488,6 +453,7 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
             <Button 
               onClick={handleResize}
               disabled={resizeImage.isPending || (!selectedPreset && (!customWidth || !customHeight))}
+              className="accent-pink transition-smooth"
               data-testid="button-resize-confirm"
             >
               {resizeImage.isPending ? (

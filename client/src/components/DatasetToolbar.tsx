@@ -216,8 +216,7 @@ export function DatasetToolbar({
 
   return (
     <header
-      className="h-[60px] flex items-center gap-4 px-[41px]"
-      style={{ backgroundColor: "#1a1a1a" }}
+      className="toolbar-glass h-[60px] flex items-center gap-4 px-10"
       data-testid="dataset-toolbar"
     >
       <Select
@@ -225,13 +224,12 @@ export function DatasetToolbar({
         onValueChange={onSelectDataset}
       >
         <SelectTrigger
-          className="w-auto min-w-[150px] h-8 border-0 rounded-lg shadow-[0px_1px_2px_0px_rgba(0,0,0,0.1)] gap-1.5 px-3"
-          style={{ backgroundColor: "#2a2a2a" }}
+          className="w-auto min-w-[150px] h-8 border-0 rounded-md surface-3 transition-smooth text-primary-emphasis gap-1.5 px-3 shadow-sm"
           data-testid="select-dataset"
         >
-          <SelectValue placeholder="Select dataset" />
+          <SelectValue placeholder="Select dataset" className="text-secondary" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="animate-slide-in-up">
           {datasets.length === 0 ? (
             <SelectItem value="none" disabled>
               No datasets
@@ -251,52 +249,49 @@ export function DatasetToolbar({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search images..."
-          className="h-8 border-0 rounded-lg pr-10 text-neutral-200"
-          style={{ backgroundColor: "#2a2a2a" }}
+          className="h-8 border-0 rounded-md surface-3 pr-10 text-secondary transition-smooth input-glow focus:text-primary-emphasis"
           data-testid="input-search"
         />
-        <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-200" />
+        <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary transition-smooth" />
       </div>
 
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
-            className="h-8 w-[35px] p-0 rounded-lg relative"
-            style={{ backgroundColor: "#2a2a2a" }}
+            size="icon"
+            className="surface-3 rounded-md relative interactive transition-smooth"
             data-testid="button-filter"
           >
-            <FilterIcon className="w-5 h-5 text-neutral-200" />
+            <FilterIcon className="w-5 h-5 text-secondary" />
             {hasActiveFilters && (
               <span 
-                className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
-                style={{ backgroundColor: "#ff58a5" }}
+                className="absolute -top-1 -right-1 w-2 h-2 rounded-full transition-smooth"
+                style={{ backgroundColor: "hsl(330 85% 60%)" }}
               />
             )}
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-72 p-0"
-          style={{ backgroundColor: "#1a1a1a", border: "1px solid #2a2a2a" }}
+          className="w-72 p-0 glass rounded-md border border-white/[0.08] shadow-lg animate-scale-in"
         >
-          <div className="p-3 border-b" style={{ borderColor: "#2a2a2a" }}>
-            <h4 className="font-medium text-sm text-white">Filter Options</h4>
-            <p className="text-xs text-neutral-400 mt-1">
+          <div className="p-3 border-b border-white/[0.06]">
+            <h4 className="font-medium text-sm text-primary-emphasis">Filter Options</h4>
+            <p className="text-xs text-tertiary mt-1">
               Filter images by size and search engines
             </p>
           </div>
           
-          <div className="p-3 border-b" style={{ borderColor: "#2a2a2a" }}>
-            <Label className="text-xs text-neutral-400 mb-2 block">Image Size</Label>
+          <div className="p-3 border-b border-white/[0.06]">
+            <Label className="text-xs text-secondary mb-2 block">Image Size</Label>
             <Select value={sizePreset} onValueChange={handleSizePresetChange}>
               <SelectTrigger 
-                className="w-full h-8 text-sm border-0" 
-                style={{ backgroundColor: "#2a2a2a" }}
+                className="w-full h-8 text-sm border-0 surface-3 rounded-md transition-smooth"
                 data-testid="select-size-preset"
               >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="animate-slide-in-up">
                 {SIZE_PRESETS.map((preset) => (
                   <SelectItem key={preset.id} value={preset.id}>
                     {preset.label}
@@ -306,9 +301,9 @@ export function DatasetToolbar({
             </Select>
             
             {sizePreset === "custom" && (
-              <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="mt-3 grid grid-cols-2 gap-2 animate-fade-in">
                 <div>
-                  <Label className="text-xs text-neutral-500">Min Width</Label>
+                  <Label className="text-xs text-tertiary">Min Width</Label>
                   <Input
                     type="number"
                     value={customMinWidth}
@@ -317,13 +312,12 @@ export function DatasetToolbar({
                       notifyFilterChange(selectedEngines, sizePreset, aspectRatio);
                     }}
                     placeholder="px"
-                    className="h-7 text-xs border-0"
-                    style={{ backgroundColor: "#2a2a2a" }}
+                    className="h-7 text-xs border-0 surface-3 rounded-md transition-smooth input-glow"
                     data-testid="input-min-width"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-neutral-500">Min Height</Label>
+                  <Label className="text-xs text-tertiary">Min Height</Label>
                   <Input
                     type="number"
                     value={customMinHeight}
@@ -332,13 +326,12 @@ export function DatasetToolbar({
                       notifyFilterChange(selectedEngines, sizePreset, aspectRatio);
                     }}
                     placeholder="px"
-                    className="h-7 text-xs border-0"
-                    style={{ backgroundColor: "#2a2a2a" }}
+                    className="h-7 text-xs border-0 surface-3 rounded-md transition-smooth input-glow"
                     data-testid="input-min-height"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-neutral-500">Max Width</Label>
+                  <Label className="text-xs text-tertiary">Max Width</Label>
                   <Input
                     type="number"
                     value={customMaxWidth}
@@ -347,13 +340,12 @@ export function DatasetToolbar({
                       notifyFilterChange(selectedEngines, sizePreset, aspectRatio);
                     }}
                     placeholder="px"
-                    className="h-7 text-xs border-0"
-                    style={{ backgroundColor: "#2a2a2a" }}
+                    className="h-7 text-xs border-0 surface-3 rounded-md transition-smooth input-glow"
                     data-testid="input-max-width"
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-neutral-500">Max Height</Label>
+                  <Label className="text-xs text-tertiary">Max Height</Label>
                   <Input
                     type="number"
                     value={customMaxHeight}
@@ -362,8 +354,7 @@ export function DatasetToolbar({
                       notifyFilterChange(selectedEngines, sizePreset, aspectRatio);
                     }}
                     placeholder="px"
-                    className="h-7 text-xs border-0"
-                    style={{ backgroundColor: "#2a2a2a" }}
+                    className="h-7 text-xs border-0 surface-3 rounded-md transition-smooth input-glow"
                     data-testid="input-max-height"
                   />
                 </div>
@@ -371,17 +362,16 @@ export function DatasetToolbar({
             )}
           </div>
 
-          <div className="p-3 border-b" style={{ borderColor: "#2a2a2a" }}>
-            <Label className="text-xs text-neutral-400 mb-2 block">Aspect Ratio</Label>
+          <div className="p-3 border-b border-white/[0.06]">
+            <Label className="text-xs text-secondary mb-2 block">Aspect Ratio</Label>
             <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
               <SelectTrigger 
-                className="w-full h-8 text-sm border-0" 
-                style={{ backgroundColor: "#2a2a2a" }}
+                className="w-full h-8 text-sm border-0 surface-3 rounded-md transition-smooth"
                 data-testid="select-aspect-ratio"
               >
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="animate-slide-in-up">
                 {ASPECT_RATIOS.map((ratio) => (
                   <SelectItem key={ratio.id} value={ratio.id}>
                     {ratio.label}
@@ -391,46 +381,46 @@ export function DatasetToolbar({
             </Select>
           </div>
 
-          <div className="p-3 border-b" style={{ borderColor: "#2a2a2a" }}>
-            <Label className="text-xs text-neutral-400 mb-2 block">Search Engines</Label>
+          <div className="p-3">
+            <Label className="text-xs text-secondary mb-2 block">Search Engines</Label>
             <button
-              className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-white/5 text-left"
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm interactive transition-smooth text-left"
               onClick={toggleAllEngines}
               data-testid="button-toggle-all-engines"
             >
               <div 
-                className="w-4 h-4 rounded border flex items-center justify-center"
+                className="w-4 h-4 rounded border flex items-center justify-center transition-smooth"
                 style={{ 
-                  borderColor: "#4a4a4a",
-                  backgroundColor: selectedEngines.size === SEARCH_ENGINES.length ? "#ff58a5" : "transparent"
+                  borderColor: "rgba(255, 255, 255, 0.15)",
+                  backgroundColor: selectedEngines.size === SEARCH_ENGINES.length ? "hsl(330 85% 60%)" : "transparent"
                 }}
               >
                 {selectedEngines.size === SEARCH_ENGINES.length && (
                   <Check className="w-3 h-3 text-white" />
                 )}
               </div>
-              <span className="text-neutral-200">All Engines</span>
+              <span className="text-secondary">All Engines</span>
             </button>
-            <div className="h-px my-1" style={{ backgroundColor: "#2a2a2a" }} />
+            <div className="h-px my-1 bg-white/[0.06]" />
             {SEARCH_ENGINES.map((engine) => (
               <button
                 key={engine.id}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-white/5 text-left"
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm interactive transition-smooth text-left"
                 onClick={() => toggleEngine(engine.id)}
                 data-testid={`button-toggle-${engine.id}`}
               >
                 <div 
-                  className="w-4 h-4 rounded border flex items-center justify-center"
+                  className="w-4 h-4 rounded border flex items-center justify-center transition-smooth"
                   style={{ 
-                    borderColor: "#4a4a4a",
-                    backgroundColor: selectedEngines.has(engine.id) ? "#ff58a5" : "transparent"
+                    borderColor: "rgba(255, 255, 255, 0.15)",
+                    backgroundColor: selectedEngines.has(engine.id) ? "hsl(330 85% 60%)" : "transparent"
                   }}
                 >
                   {selectedEngines.has(engine.id) && (
                     <Check className="w-3 h-3 text-white" />
                   )}
                 </div>
-                <span className="text-neutral-200">{engine.label}</span>
+                <span className="text-secondary">{engine.label}</span>
               </button>
             ))}
           </div>
@@ -443,18 +433,18 @@ export function DatasetToolbar({
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="h-8 px-3 rounded-lg gap-2"
-            style={{ backgroundColor: "#2a2a2a" }}
+            className="h-8 px-3 rounded-md gap-2 surface-3 interactive transition-smooth text-secondary"
             disabled={!selectedDatasetId}
             data-testid="button-actions"
           >
             Actions
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="animate-slide-in-up">
           <DropdownMenuItem
             onClick={handleDedupe}
             disabled={runDedupe.isPending || !selectedDatasetId}
+            className="transition-smooth"
             data-testid="action-dedupe"
           >
             <Copy className="w-4 h-4 mr-2" />
@@ -463,6 +453,7 @@ export function DatasetToolbar({
           <DropdownMenuItem
             onClick={() => selectedDatasetId && captionAll.mutate(selectedDatasetId)}
             disabled={captionAll.isPending || !selectedDatasetId}
+            className="transition-smooth"
             data-testid="action-caption-all"
           >
             {captionAll.isPending ? (
@@ -475,6 +466,7 @@ export function DatasetToolbar({
           <DropdownMenuItem
             onClick={handleExportClick}
             disabled={isExporting || !selectedDatasetId}
+            className="transition-smooth"
             data-testid="action-export"
           >
             {isExporting ? (
@@ -485,7 +477,7 @@ export function DatasetToolbar({
             {isExporting ? "Exporting..." : "Export Dataset"}
           </DropdownMenuItem>
           {exportData?.status === "completed" && exportData.downloadUrl && (
-            <DropdownMenuItem onClick={handleDownload} data-testid="action-download">
+            <DropdownMenuItem onClick={handleDownload} className="transition-smooth" data-testid="action-download">
               <Download className="w-4 h-4 mr-2" />
               Download Export
             </DropdownMenuItem>

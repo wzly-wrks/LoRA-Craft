@@ -1,4 +1,4 @@
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, Upload } from "lucide-react";
 import { ImageCard } from "./ImageCard";
 import { UploadDropzone } from "./UploadDropzone";
 import type { ImageWithUrl } from "@/lib/api";
@@ -12,6 +12,15 @@ interface ImageGridProps {
   onUploadComplete?: () => void;
 }
 
+function SkeletonCard() {
+  return (
+    <div 
+      className="w-[180px] h-[180px] rounded-lg skeleton"
+      style={{ boxShadow: 'var(--shadow-sm)' }}
+    />
+  );
+}
+
 export function ImageGrid({
   images,
   selectedImageId,
@@ -23,11 +32,17 @@ export function ImageGrid({
   if (!datasetId) {
     return (
       <div
-        className="flex-1 flex flex-col items-center justify-center"
-        style={{ backgroundColor: "#0f0f0f" }}
+        className="flex-1 flex flex-col items-center justify-center surface-1 animate-fade-in"
+        data-testid="image-grid-empty-state"
       >
-        <ImageIcon className="w-16 h-16 text-neutral-500 mb-4" />
-        <p className="text-[#9a9a9a] text-lg">Select a dataset to view images</p>
+        <div 
+          className="w-20 h-20 rounded-full surface-3 flex items-center justify-center mb-6"
+          style={{ boxShadow: 'var(--shadow-md)' }}
+        >
+          <ImageIcon className="w-10 h-10 text-tertiary" />
+        </div>
+        <h3 className="text-primary-emphasis text-xl mb-2">No Dataset Selected</h3>
+        <p className="text-secondary text-sm">Select a dataset from the sidebar to view images</p>
       </div>
     );
   }
@@ -35,26 +50,31 @@ export function ImageGrid({
   if (isLoading) {
     return (
       <div
-        className="flex-1 flex items-center justify-center"
-        style={{ backgroundColor: "#0f0f0f" }}
+        className="flex-1 flex flex-col overflow-hidden surface-1"
+        data-testid="image-grid-loading"
       >
-        <div className="animate-spin w-8 h-8 border-3 border-white/20 border-t-white rounded-full" />
+        <div className="flex-1 overflow-auto p-6">
+          <div className="flex flex-wrap gap-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <SkeletonCard key={index} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div
-      className="flex-1 flex flex-col overflow-hidden"
-      style={{ backgroundColor: "#0f0f0f" }}
+      className="flex-1 flex flex-col overflow-hidden surface-1"
       data-testid="image-grid"
     >
       {images.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-8">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 animate-fade-in">
           <UploadDropzone datasetId={datasetId} onUploadComplete={onUploadComplete} />
         </div>
       ) : (
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto p-6 animate-fade-in">
           <div className="flex flex-wrap gap-4">
             {images.map((image) => (
               <ImageCard
@@ -65,13 +85,25 @@ export function ImageGrid({
               />
             ))}
             <div
-              className="w-[180px] h-[180px] flex items-center justify-center rounded-lg border-2 border-dashed cursor-pointer transition-colors"
+              className="image-card w-[180px] h-[180px] flex items-center justify-center rounded-lg border-2 border-dashed cursor-pointer surface-2 group"
               style={{
-                borderColor: "#3a3a3a",
-                backgroundColor: "#1a1a1a",
+                borderColor: 'hsl(0 0% 20%)',
+                boxShadow: 'var(--shadow-sm)',
+                transition: 'all var(--transition-normal) var(--ease-out)',
               }}
               data-testid="upload-more-images"
             >
+              <div className="image-card-overlay absolute inset-0 rounded-lg flex items-center justify-center pointer-events-none">
+                <div 
+                  className="w-12 h-12 rounded-full flex items-center justify-center"
+                  style={{ 
+                    backgroundColor: 'hsl(var(--accent-pink) / 0.15)',
+                    transition: 'all var(--transition-fast) var(--ease-out)',
+                  }}
+                >
+                  <Upload className="w-6 h-6" style={{ color: 'hsl(var(--accent-pink))' }} />
+                </div>
+              </div>
               <UploadDropzone
                 datasetId={datasetId}
                 onUploadComplete={onUploadComplete}

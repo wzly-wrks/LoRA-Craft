@@ -1,4 +1,4 @@
-import { ImageIcon, Copy, MessageSquare } from "lucide-react";
+import { ImageIcon, Copy, MessageSquare, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ImageWithUrl } from "@/lib/api";
@@ -15,14 +15,15 @@ export function ImageCard({ image, isSelected, onClick }: ImageCardProps) {
   return (
     <Card
       onClick={onClick}
-      className={`w-[180px] h-[180px] border-0 rounded-lg shadow-[0px_2px_6px_#000000] cursor-pointer transition-all hover-elevate ${
+      className={`image-card w-[180px] h-[180px] border-0 rounded-lg cursor-pointer overflow-visible surface-2 ${
         isSelected
-          ? "ring-2 ring-offset-2 ring-offset-[#0f0f0f]"
+          ? "ring-2 ring-offset-2 ring-offset-[hsl(0_0%_6%)]"
           : ""
       }`}
       style={{
-        backgroundColor: "#1d1d1d",
-        ["--tw-ring-color" as string]: "#ff58a5",
+        boxShadow: isSelected ? 'var(--shadow-lg)' : 'var(--shadow-sm)',
+        transition: 'all var(--transition-normal) var(--ease-out)',
+        ["--tw-ring-color" as string]: "hsl(var(--accent-pink))",
       }}
       data-testid={`image-card-${image.id}`}
     >
@@ -33,11 +34,36 @@ export function ImageCard({ image, isSelected, onClick }: ImageCardProps) {
               src={image.url}
               alt={image.originalFilename || "Image"}
               className="w-full h-full object-cover"
+              style={{ transition: 'transform var(--transition-normal) var(--ease-out)' }}
             />
+            <div 
+              className="image-card-overlay absolute inset-0 flex items-center justify-center"
+              style={{ 
+                background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 50%)',
+              }}
+            >
+              <div 
+                className="absolute bottom-2 left-2 right-2 flex items-center gap-1"
+                style={{ transition: 'all var(--transition-fast) var(--ease-out)' }}
+              >
+                <div 
+                  className="w-6 h-6 rounded flex items-center justify-center"
+                  style={{ 
+                    backgroundColor: 'hsl(var(--accent-pink) / 0.9)',
+                    boxShadow: 'var(--shadow-sm)',
+                  }}
+                >
+                  <Pencil className="w-3 h-3 text-white" />
+                </div>
+              </div>
+            </div>
             {image.flaggedDuplicate && (
               <Badge
                 className="absolute top-1 left-1 text-[10px] px-1.5 py-0.5"
-                style={{ backgroundColor: "#ff5858" }}
+                style={{ 
+                  backgroundColor: "hsl(0 72% 51%)",
+                  boxShadow: 'var(--shadow-sm)',
+                }}
               >
                 <Copy className="w-3 h-3 mr-1" />
                 Dupe
@@ -46,7 +72,11 @@ export function ImageCard({ image, isSelected, onClick }: ImageCardProps) {
             {hasCaptionComplete && (
               <div
                 className="absolute bottom-1 right-1 w-5 h-5 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: "#22c55e" }}
+                style={{ 
+                  backgroundColor: "hsl(142 76% 36%)",
+                  boxShadow: 'var(--shadow-sm)',
+                  transition: 'transform var(--transition-fast) var(--ease-out)',
+                }}
                 title="Caption complete"
               >
                 <MessageSquare className="w-3 h-3 text-white" />
@@ -55,13 +85,12 @@ export function ImageCard({ image, isSelected, onClick }: ImageCardProps) {
           </div>
         ) : (
           <div
-            className="w-full h-full border border-solid flex items-center justify-center rounded"
+            className="w-full h-full border border-solid flex items-center justify-center rounded surface-3"
             style={{
-              backgroundColor: "#2a2a2a",
-              borderColor: "#3a3a3a",
+              borderColor: "hsl(0 0% 18%)",
             }}
           >
-            <ImageIcon className="w-12 h-12 text-neutral-500" />
+            <ImageIcon className="w-12 h-12 text-tertiary" />
           </div>
         )}
       </CardContent>

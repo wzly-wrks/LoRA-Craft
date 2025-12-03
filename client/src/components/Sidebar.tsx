@@ -43,40 +43,40 @@ export function Sidebar({
 
   return (
     <aside
-      className="h-full flex flex-col"
-      style={{ backgroundColor: "#141414", width }}
+      className="h-full flex flex-col sidebar-glass transition-smooth"
+      style={{ width }}
       data-testid="sidebar"
     >
-      <div className="p-[21px]">
+      <div className="p-5">
         <img
-          className="w-40 h-40 object-cover"
+          className="w-40 h-40 object-cover transition-smooth"
           alt="Lora craft"
           src="/figmaAssets/lora-craft-1.png"
         />
       </div>
 
-      <div className="px-[21px] mt-[20px]">
+      <div className="px-5 mt-5">
         <Button
           onClick={onNewConcept}
-          className="w-full h-auto rounded-[100px] px-4 py-2.5 gap-2"
-          style={{ backgroundColor: "#2a2a2a" }}
+          className="w-full h-auto rounded-[100px] px-4 py-2.5 gap-2 transition-smooth"
+          style={{ backgroundColor: "rgba(255, 255, 255, 0.08)" }}
           data-testid="button-new-concept"
         >
-          <PlusIcon className="w-5 h-5" />
-          <span className="text-[#eeeeee] text-sm font-medium">
+          <PlusIcon className="w-5 h-5 text-primary-emphasis" />
+          <span className="text-primary-emphasis text-sm font-medium">
             New Concept
           </span>
         </Button>
       </div>
 
-      <ScrollArea className="flex-1 mt-[30px]">
-        <nav className="px-[14px] flex flex-col gap-1" data-testid="workspace-list">
+      <ScrollArea className="flex-1 mt-7 transition-smooth">
+        <nav className="px-3.5 flex flex-col gap-1" data-testid="workspace-list">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin w-5 h-5 border-2 border-white/20 border-t-white rounded-full" />
             </div>
           ) : workspaces.length === 0 ? (
-            <p className="text-[#9a9a9a] text-sm text-center py-4">
+            <p className="text-tertiary text-sm text-center py-4">
               No concepts yet
             </p>
           ) : (
@@ -91,11 +91,11 @@ export function Sidebar({
                   open={isExpanded}
                   onOpenChange={() => toggleWorkspace(workspace.id)}
                 >
-                  <div className="relative" data-testid={`workspace-item-${workspace.id}`}>
+                  <div className="relative transition-smooth" data-testid={`workspace-item-${workspace.id}`}>
                     {isSelected && !selectedDatasetId && (
                       <div
-                        className="absolute left-[-14px] top-0 w-1 h-full rounded-r"
-                        style={{ backgroundColor: "#ff58a5" }}
+                        className="absolute left-[-14px] top-0 w-1 h-full rounded-r transition-smooth"
+                        style={{ backgroundColor: "hsl(330 85% 60%)" }}
                       />
                     )}
                     <div className="flex items-center gap-1">
@@ -103,27 +103,27 @@ export function Sidebar({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="w-6 h-6 p-0"
+                          className="w-6 h-6 p-0 interactive transition-smooth"
                         >
                           {isExpanded ? (
-                            <ChevronDown className="w-4 h-4 text-[#9a9a9a]" />
+                            <ChevronDown className="w-4 h-4 text-tertiary transition-smooth" />
                           ) : (
-                            <ChevronRight className="w-4 h-4 text-[#9a9a9a]" />
+                            <ChevronRight className="w-4 h-4 text-tertiary transition-smooth" />
                           )}
                         </Button>
                       </CollapsibleTrigger>
                       <Button
                         variant="ghost"
                         onClick={() => onSelectWorkspace(workspace.id)}
-                        className={`flex-1 h-auto justify-start px-2 py-2 rounded-md ${
+                        className={`flex-1 h-auto justify-start px-2 py-2 rounded-md interactive transition-smooth ${
                           isSelected && !selectedDatasetId
-                            ? "bg-[#3c3c3c]"
+                            ? "surface-3"
                             : "bg-transparent"
                         }`}
                         data-testid={`button-workspace-${workspace.id}`}
                       >
-                        <FolderOpen className="w-4 h-4 mr-2 text-[#9a9a9a]" />
-                        <span className="text-[#e8e8e8] text-sm font-medium truncate">
+                        <FolderOpen className="w-4 h-4 mr-2 text-secondary transition-smooth" />
+                        <span className="text-primary-emphasis text-sm font-medium truncate">
                           {workspace.name}
                         </span>
                       </Button>
@@ -135,24 +135,24 @@ export function Sidebar({
                       {workspaceDatasets.map((dataset) => {
                         const isDatasetSelected = selectedDatasetId === dataset.id;
                         return (
-                          <div key={dataset.id} className="relative" data-testid={`dataset-item-${dataset.id}`}>
+                          <div key={dataset.id} className="relative transition-smooth" data-testid={`dataset-item-${dataset.id}`}>
                             {isDatasetSelected && (
                               <div
-                                className="absolute left-[-21px] top-0 w-1 h-full rounded-r"
-                                style={{ backgroundColor: "#ff58a5" }}
+                                className="absolute left-[-21px] top-0 w-1 h-full rounded-r transition-smooth"
+                                style={{ backgroundColor: "hsl(330 85% 60%)" }}
                               />
                             )}
                             <Button
                               variant="ghost"
                               onClick={() => onSelectDataset(workspace.id, dataset.id)}
-                              className={`w-full h-auto justify-start px-2 py-1.5 rounded-md ${
+                              className={`w-full h-auto justify-start px-2 py-1.5 rounded-md interactive transition-smooth ${
                                 isDatasetSelected
-                                  ? "bg-[#3c3c3c]"
+                                  ? "surface-3"
                                   : "bg-transparent"
                               }`}
                               data-testid={`button-dataset-${dataset.id}`}
                             >
-                              <span className="text-[#b0b0b0] text-xs truncate">
+                              <span className="text-secondary text-xs truncate">
                                 {dataset.name}
                               </span>
                             </Button>
@@ -168,25 +168,28 @@ export function Sidebar({
         </nav>
       </ScrollArea>
 
-      <div className="p-[14px] border-t border-[#2a2a2a] flex flex-col gap-1">
+      <div 
+        className="p-3.5 flex flex-col gap-1 transition-smooth"
+        style={{ borderTop: "1px solid rgba(255, 255, 255, 0.08)" }}
+      >
         <Link href="/training">
           <Button
             variant="ghost"
-            className="w-full h-auto justify-start px-2 py-2 rounded-md"
+            className="w-full h-auto justify-start px-2 py-2 rounded-md interactive transition-smooth"
             data-testid="button-training"
           >
-            <Rocket className="w-4 h-4 mr-2 text-[#9a9a9a]" />
-            <span className="text-[#e8e8e8] text-sm font-medium">Training</span>
+            <Rocket className="w-4 h-4 mr-2 text-secondary transition-smooth" />
+            <span className="text-primary-emphasis text-sm font-medium">Training</span>
           </Button>
         </Link>
         <Link href="/settings">
           <Button
             variant="ghost"
-            className="w-full h-auto justify-start px-2 py-2 rounded-md"
+            className="w-full h-auto justify-start px-2 py-2 rounded-md interactive transition-smooth"
             data-testid="button-settings"
           >
-            <Settings className="w-4 h-4 mr-2 text-[#9a9a9a]" />
-            <span className="text-[#e8e8e8] text-sm font-medium">Settings</span>
+            <Settings className="w-4 h-4 mr-2 text-secondary transition-smooth" />
+            <span className="text-primary-emphasis text-sm font-medium">Settings</span>
           </Button>
         </Link>
       </div>
