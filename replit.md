@@ -258,9 +258,68 @@ Located in `server/replicateIntegration.ts`:
 - Training job submission and monitoring
 - Model retrieval after training completion
 
+## Visual Design System
+
+### Windows 11-Inspired Theme
+The application features a modern Windows 11-style dark theme with:
+
+**Surface Levels** (depth system):
+- `surface-0`: #0a0a0a (deepest/base)
+- `surface-1`: #0f0f0f 
+- `surface-2`: #141414
+- `surface-3`: #1a1a1a
+- `surface-4`: #1f1f1f (lightest)
+
+**Glass Effects**:
+- `glass`: Backdrop blur with semi-transparent backgrounds
+- `sidebar-glass`: For the navigation sidebar
+- `toolbar-glass`: For toolbars
+- `panel-glass`: For detail panels
+
+**Accent Color**:
+- Pink: hsl(330 85% 60%) / #ff58a5
+
+**Text Hierarchy**:
+- `text-primary-emphasis`: White for headings
+- `text-secondary`: 70% white for body text
+- `text-tertiary`: 50% white for captions
+
+**Animations**:
+- All transitions use CSS variables (--transition-fast, --transition-normal)
+- Easing: cubic-bezier(0.16, 1, 0.3, 1)
+- Key animations: fadeIn, slideInRight, slideInUp, scaleIn
+
+### Custom Title Bar
+Located at `client/src/components/TitleBar.tsx`:
+- Native Windows 11 appearance
+- Draggable region for window movement
+- Window controls (minimize, maximize, close)
+- Tauri-aware for native window management
+
+## Tauri Configuration (Desktop Build Alternative)
+
+### Files
+Located in `src-tauri/`:
+- `Cargo.toml`: Rust dependencies (Tauri v2)
+- `tauri.conf.json`: Build configuration
+- `src/lib.rs`: Rust commands (window controls, app paths)
+- `src/main.rs`: Entry point
+
+### Building with Tauri
+Requires Rust toolchain installed locally:
+```bash
+npm run tauri dev    # Development
+npm run tauri build  # Production build
+```
+
 ## Recent Changes
 
 ### December 2024
+- Visual redesign: Windows 11-style dark theme with glass effects
+- Added custom TitleBar component for native window appearance
+- Added Tauri v2 scaffolding as alternative to Electron
+- Implemented surface levels system for visual depth
+- Added micro-animations and smooth transitions throughout
 - Added Settings page (`/settings`) with API key management
 - Implemented search engine integration service (Brave, Bing, Google)
 - Created Replicate.com integration for LoRA training
