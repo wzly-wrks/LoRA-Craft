@@ -14,9 +14,10 @@ interface DetailPanelProps {
   image: ImageWithUrl | null;
   onClose: () => void;
   onDeleted?: () => void;
+  isOpen?: boolean;
 }
 
-export function DetailPanel({ image, onClose, onDeleted }: DetailPanelProps) {
+export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: DetailPanelProps) {
   const [caption, setCaption] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
@@ -57,19 +58,8 @@ export function DetailPanel({ image, onClose, onDeleted }: DetailPanelProps) {
     }
   }, [image]);
 
-  if (!image) {
-    return (
-      <aside
-        className="w-[322px] h-full border-l border-solid flex flex-col items-center justify-center"
-        style={{
-          backgroundColor: "#121212",
-          borderColor: "#2c2c2c33",
-        }}
-      >
-        <ImageIcon className="w-12 h-12 text-neutral-500 mb-4" />
-        <p className="text-[#9a9a9a] text-sm">Select an image to view details</p>
-      </aside>
-    );
+  if (!isOpen || !image) {
+    return null;
   }
 
   const formatSize = (bytes: number | null | undefined) => {
@@ -127,13 +117,27 @@ export function DetailPanel({ image, onClose, onDeleted }: DetailPanelProps) {
 
   return (
     <aside
-      className="w-[322px] h-full border-l border-solid shadow-[-4px_0px_12px_30px_#0c0c0d0d] flex flex-col"
+      className="absolute right-0 top-0 w-[322px] h-full border-l border-solid flex flex-col z-20"
       style={{
         backgroundColor: "#121212",
         borderColor: "#2c2c2c33",
+        boxShadow: "-8px 0 32px rgba(0, 0, 0, 0.5), -2px 0 8px rgba(0, 0, 0, 0.3)",
+        animation: "slideInRight 0.25s ease-out",
       }}
       data-testid="detail-panel"
     >
+      <style>{`
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+      `}</style>
       <header className="h-[60px] flex items-center justify-center relative px-6">
         <h2 className="text-[#e8e8e8] text-base font-medium text-center">
           Image Details

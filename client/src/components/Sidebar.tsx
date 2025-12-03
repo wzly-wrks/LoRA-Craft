@@ -15,6 +15,7 @@ interface SidebarProps {
   onSelectDataset: (workspaceId: string, datasetId: string) => void;
   onNewConcept: () => void;
   isLoading?: boolean;
+  width?: number;
 }
 
 export function Sidebar({
@@ -26,6 +27,7 @@ export function Sidebar({
   onSelectDataset,
   onNewConcept,
   isLoading,
+  width = 202,
 }: SidebarProps) {
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<Set<string>>(new Set());
 
@@ -41,8 +43,8 @@ export function Sidebar({
 
   return (
     <aside
-      className="w-[202px] h-full flex flex-col"
-      style={{ backgroundColor: "#141414" }}
+      className="h-full flex flex-col"
+      style={{ backgroundColor: "#141414", width }}
       data-testid="sidebar"
     >
       <div className="p-[21px]">

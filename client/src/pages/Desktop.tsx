@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { ImageGrid } from "@/components/ImageGrid";
 import { DetailPanel } from "@/components/DetailPanel";
@@ -30,7 +30,43 @@ export const Desktop = (): JSX.Element => {
   const [modalType, setModalType] = useState<ModalType>(null);
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
+  const [sidebarWidth, setSidebarWidth] = useState(202);
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const handleMouseDown = useCallback(() => {
+    setIsResizing(true);
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isResizing) return;
+      const newWidth = Math.min(Math.max(180, e.clientX), 400);
+      setSidebarWidth(newWidth);
+    },
+    [isResizing]
+  );
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "col-resize";
+      document.body.style.userSelect = "none";
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
 
   const { data: workspaces = [], isLoading: workspacesLoading } = useWorkspaces();
   const { data: currentWorkspaceDatasets = [] } = useDatasets(selectedWorkspaceId);
@@ -152,17 +188,32 @@ export const Desktop = (): JSX.Element => {
 
   return (
     <div className="w-full min-w-[1440px] min-h-screen" style={{ backgroundColor: "#000000" }}>
-      <div className="flex w-full h-screen overflow-hidden">
-        <Sidebar
-          workspaces={workspaces}
-          datasets={datasetsMap}
-          selectedWorkspaceId={selectedWorkspaceId}
-          selectedDatasetId={selectedDatasetId}
-          onSelectWorkspace={handleSelectWorkspace}
-          onSelectDataset={handleSelectDataset}
-          onNewConcept={handleNewConcept}
-          isLoading={workspacesLoading}
-        />
+      <div className="flex w-full h-screen overflow-hidden relative">
+        <div 
+          className="relative flex-shrink-0"
+          style={{ width: sidebarWidth }}
+        >
+          <Sidebar
+            workspaces={workspaces}
+            datasets={datasetsMap}
+            selectedWorkspaceId={selectedWorkspaceId}
+            selectedDatasetId={selectedDatasetId}
+            onSelectWorkspace={handleSelectWorkspace}
+            onSelectDataset={handleSelectDataset}
+            onNewConcept={handleNewConcept}
+            isLoading={workspacesLoading}
+            width={sidebarWidth}
+          />
+          <div
+            ref={resizeRef}
+            onMouseDown={handleMouseDown}
+            className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-[#ff58a5] transition-colors z-10"
+            style={{ 
+              backgroundColor: isResizing ? "#ff58a5" : "transparent" 
+            }}
+            data-testid="sidebar-resize-handle"
+          />
+        </div>
 
         <main
           className="flex-1 flex flex-col border border-solid"
@@ -192,6 +243,7 @@ export const Desktop = (): JSX.Element => {
           image={selectedImage || null}
           onClose={handleCloseDetailPanel}
           onDeleted={handleImageDeleted}
+          isOpen={!!selectedImageId}
         />
       </div>
 

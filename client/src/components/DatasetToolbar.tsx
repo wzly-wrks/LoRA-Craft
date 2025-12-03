@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { SearchIcon, FilterIcon, Copy, Download, Loader2, Wand2 } from "lucide-react";
+import { SearchIcon, FilterIcon, Copy, Download, Loader2, Wand2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -14,7 +15,15 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useRunDedupe, useCreateExport, useExport } from "@/hooks/useImages";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
@@ -29,6 +38,14 @@ interface DatasetToolbarProps {
   onSearchChange: (query: string) => void;
 }
 
+const SEARCH_ENGINES = [
+  { id: "google", label: "Google" },
+  { id: "bing", label: "Bing" },
+  { id: "brave", label: "Brave" },
+  { id: "pinterest", label: "Pinterest" },
+  { id: "reddit", label: "Reddit" },
+] as const;
+
 export function DatasetToolbar({
   datasets,
   selectedDatasetId,
@@ -37,6 +54,10 @@ export function DatasetToolbar({
   onSearchChange,
 }: DatasetToolbarProps) {
   const [exportId, setExportId] = useState<string | null>(null);
+  const [showExportConfirm, setShowExportConfirm] = useState(false);
+  const [selectedEngines, setSelectedEngines] = useState<Set<string>>(
+    new Set(SEARCH_ENGINES.map((e) => e.id))
+  );
   const runDedupe = useRunDedupe();
   const createExport = useCreateExport();
   const { data: exportData } = useExport(exportId || undefined);
@@ -68,7 +89,13 @@ export function DatasetToolbar({
     }
   };
 
+  const handleExportClick = () => {
+    if (!selectedDatasetId) return;
+    setShowExportConfirm(true);
+  };
+
   const handleExport = async () => {
+    setShowExportConfirm(false);
     if (!selectedDatasetId) return;
     try {
       const result = await createExport.mutateAsync(selectedDatasetId);
@@ -79,6 +106,26 @@ export function DatasetToolbar({
       });
     } catch {
       toast({ title: "Failed to create export", variant: "destructive" });
+    }
+  };
+
+  const toggleEngine = (engineId: string) => {
+    const newSet = new Set(selectedEngines);
+    if (newSet.has(engineId)) {
+      if (newSet.size > 1) {
+        newSet.delete(engineId);
+      }
+    } else {
+      newSet.add(engineId);
+    }
+    setSelectedEngines(newSet);
+  };
+
+  const toggleAllEngines = () => {
+    if (selectedEngines.size === SEARCH_ENGINES.length) {
+      setSelectedEngines(new Set([SEARCH_ENGINES[0].id]));
+    } else {
+      setSelectedEngines(new Set(SEARCH_ENGINES.map((e) => e.id)));
     }
   };
 
@@ -134,14 +181,77 @@ export function DatasetToolbar({
         <SearchIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-200" />
       </div>
 
-      <Button
-        variant="ghost"
-        className="h-8 w-[35px] p-0 rounded-lg"
-        style={{ backgroundColor: "#2a2a2a" }}
-        data-testid="button-filter"
-      >
-        <FilterIcon className="w-5 h-5 text-neutral-200" />
-      </Button>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            className="h-8 w-[35px] p-0 rounded-lg relative"
+            style={{ backgroundColor: "#2a2a2a" }}
+            data-testid="button-filter"
+          >
+            <FilterIcon className="w-5 h-5 text-neutral-200" />
+            {selectedEngines.size < SEARCH_ENGINES.length && (
+              <span 
+                className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
+                style={{ backgroundColor: "#ff58a5" }}
+              />
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent 
+          className="w-56 p-0"
+          style={{ backgroundColor: "#1a1a1a", border: "1px solid #2a2a2a" }}
+        >
+          <div className="p-3 border-b" style={{ borderColor: "#2a2a2a" }}>
+            <h4 className="font-medium text-sm text-white">Search Engines</h4>
+            <p className="text-xs text-neutral-400 mt-1">
+              Select which engines to search
+            </p>
+          </div>
+          <div className="p-2">
+            <button
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-white/5 text-left"
+              onClick={toggleAllEngines}
+              data-testid="button-toggle-all-engines"
+            >
+              <div 
+                className="w-4 h-4 rounded border flex items-center justify-center"
+                style={{ 
+                  borderColor: "#4a4a4a",
+                  backgroundColor: selectedEngines.size === SEARCH_ENGINES.length ? "#ff58a5" : "transparent"
+                }}
+              >
+                {selectedEngines.size === SEARCH_ENGINES.length && (
+                  <Check className="w-3 h-3 text-white" />
+                )}
+              </div>
+              <span className="text-neutral-200">All Engines</span>
+            </button>
+            <div className="h-px my-1" style={{ backgroundColor: "#2a2a2a" }} />
+            {SEARCH_ENGINES.map((engine) => (
+              <button
+                key={engine.id}
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-white/5 text-left"
+                onClick={() => toggleEngine(engine.id)}
+                data-testid={`button-toggle-${engine.id}`}
+              >
+                <div 
+                  className="w-4 h-4 rounded border flex items-center justify-center"
+                  style={{ 
+                    borderColor: "#4a4a4a",
+                    backgroundColor: selectedEngines.has(engine.id) ? "#ff58a5" : "transparent"
+                  }}
+                >
+                  {selectedEngines.has(engine.id) && (
+                    <Check className="w-3 h-3 text-white" />
+                  )}
+                </div>
+                <span className="text-neutral-200">{engine.label}</span>
+              </button>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
 
       <div className="flex-1" />
 
@@ -179,7 +289,7 @@ export function DatasetToolbar({
             {captionAll.isPending ? "Starting..." : "Auto-Caption All"}
           </DropdownMenuItem>
           <DropdownMenuItem
-            onClick={handleExport}
+            onClick={handleExportClick}
             disabled={isExporting || !selectedDatasetId}
             data-testid="action-export"
           >
@@ -198,6 +308,17 @@ export function DatasetToolbar({
           )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <ConfirmModal
+        isOpen={showExportConfirm}
+        title="Export Dataset?"
+        message="This will export your current dataset as a ZIP file containing all images and their captions."
+        confirmLabel="Export"
+        cancelLabel="Cancel"
+        onConfirm={handleExport}
+        onCancel={() => setShowExportConfirm(false)}
+        isLoading={createExport.isPending}
+      />
     </header>
   );
 }

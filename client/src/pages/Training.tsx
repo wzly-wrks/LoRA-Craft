@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, XIcon, Rocket, Clock, CheckCircle2, XCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { Link } from "wouter";
@@ -55,6 +56,7 @@ export default function TrainingPage() {
   const [learningRate, setLearningRate] = useState<number>(0.0004);
   const [resolution, setResolution] = useState<string>("512,768,1024");
   const [exportingDataset, setExportingDataset] = useState<boolean>(false);
+  const [showTrainingConfirm, setShowTrainingConfirm] = useState<boolean>(false);
 
   const { data: workspaces, isLoading: loadingWorkspaces } = useQuery<Workspace[]>({
     queryKey: ["/api/workspaces"],
@@ -106,7 +108,7 @@ export default function TrainingPage() {
     },
   });
 
-  const handleStartTraining = async () => {
+  const handleTrainingClick = () => {
     if (!selectedDatasetId) {
       toast({ title: "Please select a dataset", variant: "destructive" });
       return;
@@ -117,6 +119,11 @@ export default function TrainingPage() {
       return;
     }
 
+    setShowTrainingConfirm(true);
+  };
+
+  const handleStartTraining = async () => {
+    setShowTrainingConfirm(false);
     setExportingDataset(true);
 
     try {
@@ -366,7 +373,7 @@ export default function TrainingPage() {
               </div>
 
               <Button
-                onClick={handleStartTraining}
+                onClick={handleTrainingClick}
                 disabled={!selectedDatasetId || !triggerWord.trim() || exportingDataset || startTrainingMutation.isPending}
                 className="w-full"
                 style={{ backgroundColor: "#ff58a5" }}
@@ -503,6 +510,17 @@ export default function TrainingPage() {
           </Card>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showTrainingConfirm}
+        title="Start Training?"
+        message="Your selected images will be packaged and sent to Replicate.com to begin training. Training costs will be charged to your Replicate account."
+        confirmLabel="Start Training"
+        cancelLabel="Cancel"
+        onConfirm={handleStartTraining}
+        onCancel={() => setShowTrainingConfirm(false)}
+        isLoading={exportingDataset || startTrainingMutation.isPending}
+      />
     </div>
   );
 }
