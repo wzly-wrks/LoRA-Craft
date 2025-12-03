@@ -164,5 +164,16 @@ export const api = {
       const res = await apiRequest("POST", `/api/images/${imageId}/resize`, options);
       return res.json();
     },
+
+    removeBackground: async (imageId: string): Promise<Image> => {
+      const res = await apiRequest("POST", `/api/images/${imageId}/remove-background`);
+      return res.json();
+    },
+
+    getTrainingPresets: async (): Promise<Array<{ name: string; width: number; height: number; description: string }>> => {
+      const res = await fetch("/api/training-presets", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch training presets");
+      return res.json();
+    },
   },
 };

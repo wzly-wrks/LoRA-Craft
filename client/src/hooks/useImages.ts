@@ -76,3 +76,36 @@ export function useExport(id: string | undefined) {
     },
   });
 }
+
+export function useResizeImage() {
+  return useMutation({
+    mutationFn: ({ 
+      imageId, 
+      options 
+    }: { 
+      imageId: string; 
+      options: { targetWidth?: number; targetHeight?: number; aspectRatio?: string } 
+    }) => api.operations.resizeImage(imageId, options),
+    onSuccess: (image) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/datasets", image.datasetId, "images"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/images", image.id] });
+    },
+  });
+}
+
+export function useRemoveBackground() {
+  return useMutation({
+    mutationFn: (imageId: string) => api.operations.removeBackground(imageId),
+    onSuccess: (image) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/datasets", image.datasetId, "images"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/images", image.id] });
+    },
+  });
+}
+
+export function useTrainingPresets() {
+  return useQuery({
+    queryKey: ["/api/training-presets"],
+    queryFn: () => api.operations.getTrainingPresets(),
+  });
+}

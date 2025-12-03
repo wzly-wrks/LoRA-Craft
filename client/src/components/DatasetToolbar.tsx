@@ -2,7 +2,7 @@ import { useState } from "react";
 import { SearchIcon, FilterIcon, Copy, Download, Loader2, Wand2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -15,8 +15,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import {
   Popover,
@@ -36,6 +34,16 @@ interface DatasetToolbarProps {
   onSelectDataset: (id: string) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onFilterChange?: (filters: ImageFilters) => void;
+}
+
+export interface ImageFilters {
+  engines: Set<string>;
+  minWidth?: number;
+  minHeight?: number;
+  maxWidth?: number;
+  maxHeight?: number;
+  aspectRatio?: string;
 }
 
 const SEARCH_ENGINES = [
@@ -46,18 +54,43 @@ const SEARCH_ENGINES = [
   { id: "reddit", label: "Reddit" },
 ] as const;
 
+const ASPECT_RATIOS = [
+  { id: "any", label: "Any" },
+  { id: "1:1", label: "Square (1:1)" },
+  { id: "4:3", label: "Landscape (4:3)" },
+  { id: "3:4", label: "Portrait (3:4)" },
+  { id: "16:9", label: "Widescreen (16:9)" },
+  { id: "9:16", label: "Tall (9:16)" },
+] as const;
+
+const SIZE_PRESETS = [
+  { id: "any", label: "Any Size", minWidth: undefined, minHeight: undefined },
+  { id: "small", label: "Small (< 512px)", maxWidth: 512, maxHeight: 512 },
+  { id: "medium", label: "Medium (512-1024px)", minWidth: 512, maxWidth: 1024 },
+  { id: "large", label: "Large (> 1024px)", minWidth: 1024 },
+  { id: "custom", label: "Custom..." },
+] as const;
+
 export function DatasetToolbar({
   datasets,
   selectedDatasetId,
   onSelectDataset,
   searchQuery,
   onSearchChange,
+  onFilterChange,
 }: DatasetToolbarProps) {
   const [exportId, setExportId] = useState<string | null>(null);
   const [showExportConfirm, setShowExportConfirm] = useState(false);
   const [selectedEngines, setSelectedEngines] = useState<Set<string>>(
     new Set(SEARCH_ENGINES.map((e) => e.id))
   );
+  const [sizePreset, setSizePreset] = useState("any");
+  const [aspectRatio, setAspectRatio] = useState("any");
+  const [customMinWidth, setCustomMinWidth] = useState("");
+  const [customMinHeight, setCustomMinHeight] = useState("");
+  const [customMaxWidth, setCustomMaxWidth] = useState("");
+  const [customMaxHeight, setCustomMaxHeight] = useState("");
+
   const runDedupe = useRunDedupe();
   const createExport = useCreateExport();
   const { data: exportData } = useExport(exportId || undefined);
@@ -119,14 +152,53 @@ export function DatasetToolbar({
       newSet.add(engineId);
     }
     setSelectedEngines(newSet);
+    notifyFilterChange(newSet, sizePreset, aspectRatio);
   };
 
   const toggleAllEngines = () => {
     if (selectedEngines.size === SEARCH_ENGINES.length) {
-      setSelectedEngines(new Set([SEARCH_ENGINES[0].id]));
+      const newSet = new Set([SEARCH_ENGINES[0].id]);
+      setSelectedEngines(newSet);
+      notifyFilterChange(newSet, sizePreset, aspectRatio);
     } else {
-      setSelectedEngines(new Set(SEARCH_ENGINES.map((e) => e.id)));
+      const newSet = new Set(SEARCH_ENGINES.map((e) => e.id));
+      setSelectedEngines(newSet);
+      notifyFilterChange(newSet, sizePreset, aspectRatio);
     }
+  };
+
+  const handleSizePresetChange = (preset: string) => {
+    setSizePreset(preset);
+    notifyFilterChange(selectedEngines, preset, aspectRatio);
+  };
+
+  const handleAspectRatioChange = (ratio: string) => {
+    setAspectRatio(ratio);
+    notifyFilterChange(selectedEngines, sizePreset, ratio);
+  };
+
+  const notifyFilterChange = (engines: Set<string>, size: string, ratio: string) => {
+    if (!onFilterChange) return;
+
+    const preset = SIZE_PRESETS.find(p => p.id === size);
+    const filters: ImageFilters = {
+      engines,
+      aspectRatio: ratio !== "any" ? ratio : undefined,
+    };
+
+    if (size === "custom") {
+      filters.minWidth = customMinWidth ? parseInt(customMinWidth) : undefined;
+      filters.minHeight = customMinHeight ? parseInt(customMinHeight) : undefined;
+      filters.maxWidth = customMaxWidth ? parseInt(customMaxWidth) : undefined;
+      filters.maxHeight = customMaxHeight ? parseInt(customMaxHeight) : undefined;
+    } else if (preset && preset.id !== "any") {
+      if ('minWidth' in preset) filters.minWidth = preset.minWidth as number | undefined;
+      if ('minHeight' in preset) filters.minHeight = preset.minHeight as number | undefined;
+      if ('maxWidth' in preset) filters.maxWidth = preset.maxWidth as number | undefined;
+      if ('maxHeight' in preset) filters.maxHeight = preset.maxHeight as number | undefined;
+    }
+
+    onFilterChange(filters);
   };
 
   const handleDownload = () => {
@@ -136,6 +208,11 @@ export function DatasetToolbar({
   };
 
   const isExporting = exportData?.status === "processing" || createExport.isPending;
+
+  const hasActiveFilters = 
+    selectedEngines.size < SEARCH_ENGINES.length || 
+    sizePreset !== "any" || 
+    aspectRatio !== "any";
 
   return (
     <header
@@ -190,7 +267,7 @@ export function DatasetToolbar({
             data-testid="button-filter"
           >
             <FilterIcon className="w-5 h-5 text-neutral-200" />
-            {selectedEngines.size < SEARCH_ENGINES.length && (
+            {hasActiveFilters && (
               <span 
                 className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
                 style={{ backgroundColor: "#ff58a5" }}
@@ -199,16 +276,123 @@ export function DatasetToolbar({
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-56 p-0"
+          className="w-72 p-0"
           style={{ backgroundColor: "#1a1a1a", border: "1px solid #2a2a2a" }}
         >
           <div className="p-3 border-b" style={{ borderColor: "#2a2a2a" }}>
-            <h4 className="font-medium text-sm text-white">Search Engines</h4>
+            <h4 className="font-medium text-sm text-white">Filter Options</h4>
             <p className="text-xs text-neutral-400 mt-1">
-              Select which engines to search
+              Filter images by size and search engines
             </p>
           </div>
-          <div className="p-2">
+          
+          <div className="p-3 border-b" style={{ borderColor: "#2a2a2a" }}>
+            <Label className="text-xs text-neutral-400 mb-2 block">Image Size</Label>
+            <Select value={sizePreset} onValueChange={handleSizePresetChange}>
+              <SelectTrigger 
+                className="w-full h-8 text-sm border-0" 
+                style={{ backgroundColor: "#2a2a2a" }}
+                data-testid="select-size-preset"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SIZE_PRESETS.map((preset) => (
+                  <SelectItem key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {sizePreset === "custom" && (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs text-neutral-500">Min Width</Label>
+                  <Input
+                    type="number"
+                    value={customMinWidth}
+                    onChange={(e) => {
+                      setCustomMinWidth(e.target.value);
+                      notifyFilterChange(selectedEngines, sizePreset, aspectRatio);
+                    }}
+                    placeholder="px"
+                    className="h-7 text-xs border-0"
+                    style={{ backgroundColor: "#2a2a2a" }}
+                    data-testid="input-min-width"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-neutral-500">Min Height</Label>
+                  <Input
+                    type="number"
+                    value={customMinHeight}
+                    onChange={(e) => {
+                      setCustomMinHeight(e.target.value);
+                      notifyFilterChange(selectedEngines, sizePreset, aspectRatio);
+                    }}
+                    placeholder="px"
+                    className="h-7 text-xs border-0"
+                    style={{ backgroundColor: "#2a2a2a" }}
+                    data-testid="input-min-height"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-neutral-500">Max Width</Label>
+                  <Input
+                    type="number"
+                    value={customMaxWidth}
+                    onChange={(e) => {
+                      setCustomMaxWidth(e.target.value);
+                      notifyFilterChange(selectedEngines, sizePreset, aspectRatio);
+                    }}
+                    placeholder="px"
+                    className="h-7 text-xs border-0"
+                    style={{ backgroundColor: "#2a2a2a" }}
+                    data-testid="input-max-width"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-neutral-500">Max Height</Label>
+                  <Input
+                    type="number"
+                    value={customMaxHeight}
+                    onChange={(e) => {
+                      setCustomMaxHeight(e.target.value);
+                      notifyFilterChange(selectedEngines, sizePreset, aspectRatio);
+                    }}
+                    placeholder="px"
+                    className="h-7 text-xs border-0"
+                    style={{ backgroundColor: "#2a2a2a" }}
+                    data-testid="input-max-height"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-3 border-b" style={{ borderColor: "#2a2a2a" }}>
+            <Label className="text-xs text-neutral-400 mb-2 block">Aspect Ratio</Label>
+            <Select value={aspectRatio} onValueChange={handleAspectRatioChange}>
+              <SelectTrigger 
+                className="w-full h-8 text-sm border-0" 
+                style={{ backgroundColor: "#2a2a2a" }}
+                data-testid="select-aspect-ratio"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ASPECT_RATIOS.map((ratio) => (
+                  <SelectItem key={ratio.id} value={ratio.id}>
+                    {ratio.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="p-3 border-b" style={{ borderColor: "#2a2a2a" }}>
+            <Label className="text-xs text-neutral-400 mb-2 block">Search Engines</Label>
             <button
               className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-white/5 text-left"
               onClick={toggleAllEngines}

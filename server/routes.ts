@@ -589,6 +589,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/images/:id/remove-background", async (req: Request, res: Response) => {
+    try {
+      const image = await storage.getImage(req.params.id);
+      if (!image) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+
+      const { removeBackground } = await import("./imageProcessing");
+      const originalBuffer = await objectStorageService.downloadToBuffer(image.storageKey);
+      const processedBuffer = await removeBackground(originalBuffer);
+      
+      const newStorageKey = image.storageKey.replace(/\.[^.]+$/, "_nobg.png");
+      await objectStorageService.uploadBuffer(processedBuffer, newStorageKey, "image/png");
+      
+      const sharp = (await import("sharp")).default;
+      const metadata = await sharp(processedBuffer).metadata();
+      
+      const updatedImage = await storage.updateImage(req.params.id, {
+        storageKey: newStorageKey,
+        width: metadata.width,
+        height: metadata.height,
+        mime: "image/png",
+      } as any);
+
+      res.json(updatedImage);
+    } catch (error) {
+      console.error("Error removing background:", error);
+      res.status(500).json({ error: "Failed to remove background" });
+    }
+  });
+
+  app.get("/api/training-presets", async (req: Request, res: Response) => {
+    const { TRAINING_PRESETS } = await import("./imageProcessing");
+    res.json(TRAINING_PRESETS);
+  });
+
   registerSettingsRoutes(app);
 
   const httpServer = createServer(app);

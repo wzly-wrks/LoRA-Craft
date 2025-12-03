@@ -1,12 +1,28 @@
 import { useState, useEffect } from "react";
-import { XIcon, ImageIcon, Trash2, Plus, Wand2, Loader2 } from "lucide-react";
+import { XIcon, ImageIcon, Trash2, Plus, Wand2, Loader2, Maximize2, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
-import { useUpdateImage, useDeleteImage } from "@/hooks/useImages";
+import { useUpdateImage, useDeleteImage, useResizeImage, useRemoveBackground, useTrainingPresets } from "@/hooks/useImages";
 import { useToast } from "@/hooks/use-toast";
 import { api, type ImageWithUrl } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -23,10 +39,17 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showResizeDialog, setShowResizeDialog] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<string>("");
+  const [customWidth, setCustomWidth] = useState("");
+  const [customHeight, setCustomHeight] = useState("");
   const { toast } = useToast();
 
   const updateImage = useUpdateImage();
   const deleteImage = useDeleteImage();
+  const resizeImage = useResizeImage();
+  const removeBackground = useRemoveBackground();
+  const { data: trainingPresets } = useTrainingPresets();
   const queryClient = useQueryClient();
 
   const generateCaption = useMutation({
@@ -100,6 +123,44 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
       onDeleted?.();
     } catch {
       toast({ title: "Failed to delete image", variant: "destructive" });
+    }
+  };
+
+  const handleResize = async () => {
+    if (!selectedPreset && (!customWidth || !customHeight)) {
+      toast({ title: "Please select a preset or enter custom dimensions", variant: "destructive" });
+      return;
+    }
+
+    try {
+      let options: { targetWidth?: number; targetHeight?: number } = {};
+      
+      if (selectedPreset && selectedPreset !== "custom") {
+        const preset = trainingPresets?.find(p => p.name === selectedPreset);
+        if (preset) {
+          options = { targetWidth: preset.width, targetHeight: preset.height };
+        }
+      } else if (customWidth && customHeight) {
+        options = { 
+          targetWidth: parseInt(customWidth), 
+          targetHeight: parseInt(customHeight) 
+        };
+      }
+
+      await resizeImage.mutateAsync({ imageId: image.id, options });
+      setShowResizeDialog(false);
+      toast({ title: "Image resized successfully" });
+    } catch {
+      toast({ title: "Failed to resize image", variant: "destructive" });
+    }
+  };
+
+  const handleRemoveBackground = async () => {
+    try {
+      await removeBackground.mutateAsync(image.id);
+      toast({ title: "Background removed successfully" });
+    } catch {
+      toast({ title: "Failed to remove background", variant: "destructive" });
     }
   };
 
@@ -191,6 +252,44 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
                 {info.label}: {info.value}
               </p>
             ))}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="text-white text-base font-medium mb-3">Image Tools</h3>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowResizeDialog(true)}
+              disabled={resizeImage.isPending}
+              className="flex-1 h-8 text-xs"
+              style={{ backgroundColor: "#2a2a2a" }}
+              data-testid="button-resize"
+            >
+              {resizeImage.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Maximize2 className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              Resize
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleRemoveBackground}
+              disabled={removeBackground.isPending}
+              className="flex-1 h-8 text-xs"
+              style={{ backgroundColor: "#2a2a2a" }}
+              data-testid="button-remove-bg"
+            >
+              {removeBackground.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+              ) : (
+                <Eraser className="w-3.5 h-3.5 mr-1.5" />
+              )}
+              Remove BG
+            </Button>
           </div>
         </section>
 
@@ -304,6 +403,105 @@ export function DetailPanel({ image, onClose, onDeleted, isOpen = true }: Detail
           </Button>
         </div>
       </div>
+
+      <Dialog open={showResizeDialog} onOpenChange={setShowResizeDialog}>
+        <DialogContent style={{ backgroundColor: "#1a1a1a", borderColor: "#2a2a2a" }}>
+          <DialogHeader>
+            <DialogTitle className="text-white">Resize Image</DialogTitle>
+            <DialogDescription className="text-neutral-400">
+              Choose a training preset or enter custom dimensions
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div>
+              <Label className="text-neutral-300 text-sm mb-2 block">Training Presets</Label>
+              <Select value={selectedPreset} onValueChange={(v) => {
+                setSelectedPreset(v);
+                if (v !== "custom") {
+                  setCustomWidth("");
+                  setCustomHeight("");
+                }
+              }}>
+                <SelectTrigger 
+                  className="w-full border-0" 
+                  style={{ backgroundColor: "#2a2a2a" }}
+                  data-testid="select-resize-preset"
+                >
+                  <SelectValue placeholder="Select a preset..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {trainingPresets?.map((preset) => (
+                    <SelectItem key={preset.name} value={preset.name}>
+                      {preset.name} ({preset.width}x{preset.height})
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="custom">Custom dimensions</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {selectedPreset === "custom" && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-neutral-400 text-xs mb-1 block">Width (px)</Label>
+                  <Input
+                    type="number"
+                    value={customWidth}
+                    onChange={(e) => setCustomWidth(e.target.value)}
+                    placeholder="1024"
+                    className="border-0"
+                    style={{ backgroundColor: "#2a2a2a" }}
+                    data-testid="input-resize-width"
+                  />
+                </div>
+                <div>
+                  <Label className="text-neutral-400 text-xs mb-1 block">Height (px)</Label>
+                  <Input
+                    type="number"
+                    value={customHeight}
+                    onChange={(e) => setCustomHeight(e.target.value)}
+                    placeholder="1024"
+                    className="border-0"
+                    style={{ backgroundColor: "#2a2a2a" }}
+                    data-testid="input-resize-height"
+                  />
+                </div>
+              </div>
+            )}
+
+            {selectedPreset && selectedPreset !== "custom" && (
+              <div className="text-sm text-neutral-400">
+                {trainingPresets?.find(p => p.name === selectedPreset)?.description}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="ghost" 
+              onClick={() => setShowResizeDialog(false)}
+              data-testid="button-resize-cancel"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleResize}
+              disabled={resizeImage.isPending || (!selectedPreset && (!customWidth || !customHeight))}
+              data-testid="button-resize-confirm"
+            >
+              {resizeImage.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Resizing...
+                </>
+              ) : (
+                "Resize"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmModal
         isOpen={showDeleteConfirm}
