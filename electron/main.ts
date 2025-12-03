@@ -12,7 +12,9 @@ const store = new Store({
       defaultEngine: 'brave',
       brave: { apiKey: '' },
       bing: { apiKey: '' },
-      google: { apiKey: '', searchEngineId: '' }
+      google: { apiKey: '', searchEngineId: '' },
+      pinterest: { accessToken: '' },
+      reddit: { clientId: '', clientSecret: '' }
     },
     app: {
       defaultExportPath: '',
