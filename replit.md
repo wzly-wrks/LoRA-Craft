@@ -129,9 +129,15 @@ Preferred communication style: Simple, everyday language.
 - electron-store for persistent user settings
 - Local server bundled and spawned as child process
 
-**Tauri Implementation** (partial):
+**Tauri v2 Implementation**:
 - Configuration present in `src-tauri/tauri.conf.json`
+- Uses Tauri v2 API (@tauri-apps/api v2.x) for all native operations
+- Custom window decorations with draggable title bar and window controls
+- Window controls use `@tauri-apps/api/window` (getCurrentWindow().minimize(), maximize(), close())
 - Lighter alternative to Electron using Rust backend
+- **Development Mode**: Run `npm run dev` first to start the Express server, then `npm run tauri:dev`
+- **Production Builds**: Requires sidecar configuration to bundle and run the Express server
+- Native scrolling with `overflow-y-auto` instead of custom ScrollArea components for better Webview2 performance
 
 **Settings Management**:
 - Cloud: Environment variables
