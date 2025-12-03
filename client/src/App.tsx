@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 
 import { Desktop } from "@/pages/Desktop";
 import Settings from "@/pages/Settings";
+import Training from "@/pages/Training";
 
 function Router() {
   return (
@@ -14,6 +15,7 @@ function Router() {
       {/* Add pages below */}
       <Route path="/" component={Desktop} />
       <Route path="/settings" component={Settings} />
+      <Route path="/training" component={Training} />
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

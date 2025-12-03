@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, FolderOpen, PlusIcon, Settings } from "lucide-react";
+import { ChevronDown, ChevronRight, FolderOpen, PlusIcon, Settings, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -166,7 +166,17 @@ export function Sidebar({
         </nav>
       </ScrollArea>
 
-      <div className="p-[14px] border-t border-[#2a2a2a]">
+      <div className="p-[14px] border-t border-[#2a2a2a] flex flex-col gap-1">
+        <Link href="/training">
+          <Button
+            variant="ghost"
+            className="w-full h-auto justify-start px-2 py-2 rounded-md"
+            data-testid="button-training"
+          >
+            <Rocket className="w-4 h-4 mr-2 text-[#9a9a9a]" />
+            <span className="text-[#e8e8e8] text-sm font-medium">Training</span>
+          </Button>
+        </Link>
         <Link href="/settings">
           <Button
             variant="ghost"
