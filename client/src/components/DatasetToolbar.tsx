@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SearchIcon, FilterIcon, Copy, Download, Loader2 } from "lucide-react";
+import { SearchIcon, FilterIcon, Copy, Download, Loader2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useRunDedupe, useCreateExport, useExport } from "@/hooks/useImages";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
+import { useMutation } from "@tanstack/react-query";
 import type { Dataset } from "@shared/schema";
 
 interface DatasetToolbarProps {
@@ -39,6 +41,19 @@ export function DatasetToolbar({
   const createExport = useCreateExport();
   const { data: exportData } = useExport(exportId || undefined);
   const { toast } = useToast();
+
+  const captionAll = useMutation({
+    mutationFn: (datasetId: string) => api.operations.captionAll(datasetId),
+    onSuccess: (data) => {
+      toast({
+        title: "Auto-captioning started",
+        description: `Processing ${data.totalImages} images in the background`,
+      });
+    },
+    onError: () => {
+      toast({ title: "Failed to start auto-captioning", variant: "destructive" });
+    },
+  });
 
   const handleDedupe = async () => {
     if (!selectedDatasetId) return;
@@ -150,6 +165,18 @@ export function DatasetToolbar({
           >
             <Copy className="w-4 h-4 mr-2" />
             {runDedupe.isPending ? "Running..." : "Find Duplicates"}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => selectedDatasetId && captionAll.mutate(selectedDatasetId)}
+            disabled={captionAll.isPending || !selectedDatasetId}
+            data-testid="action-caption-all"
+          >
+            {captionAll.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Wand2 className="w-4 h-4 mr-2" />
+            )}
+            {captionAll.isPending ? "Starting..." : "Auto-Caption All"}
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={handleExport}

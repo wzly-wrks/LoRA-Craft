@@ -141,5 +141,28 @@ export const api = {
       const res = await apiRequest("POST", `/api/datasets/${datasetId}/dedupe`);
       return res.json();
     },
+
+    generateCaption: async (imageId: string): Promise<{ caption: string; image: Image }> => {
+      const res = await apiRequest("POST", `/api/images/${imageId}/caption`);
+      return res.json();
+    },
+
+    generateTags: async (imageId: string): Promise<{ tags: string[]; image: Image }> => {
+      const res = await apiRequest("POST", `/api/images/${imageId}/tags`);
+      return res.json();
+    },
+
+    captionAll: async (datasetId: string): Promise<{ message: string; totalImages: number }> => {
+      const res = await apiRequest("POST", `/api/datasets/${datasetId}/caption-all`);
+      return res.json();
+    },
+
+    resizeImage: async (
+      imageId: string,
+      options: { targetWidth?: number; targetHeight?: number; aspectRatio?: string }
+    ): Promise<Image> => {
+      const res = await apiRequest("POST", `/api/images/${imageId}/resize`, options);
+      return res.json();
+    },
   },
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { XIcon, ImageIcon, Trash2, Plus } from "lucide-react";
+import { XIcon, ImageIcon, Trash2, Plus, Wand2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useUpdateImage, useDeleteImage } from "@/hooks/useImages";
 import { useToast } from "@/hooks/use-toast";
-import type { ImageWithUrl } from "@/lib/api";
+import { api, type ImageWithUrl } from "@/lib/api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface DetailPanelProps {
   image: ImageWithUrl | null;
@@ -23,6 +24,31 @@ export function DetailPanel({ image, onClose, onDeleted }: DetailPanelProps) {
 
   const updateImage = useUpdateImage();
   const deleteImage = useDeleteImage();
+  const queryClient = useQueryClient();
+
+  const generateCaption = useMutation({
+    mutationFn: (imageId: string) => api.operations.generateCaption(imageId),
+    onSuccess: (data) => {
+      setCaption(data.caption);
+      queryClient.invalidateQueries({ queryKey: ["images"] });
+      toast({ title: "Caption generated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to generate caption", variant: "destructive" });
+    },
+  });
+
+  const generateTags = useMutation({
+    mutationFn: (imageId: string) => api.operations.generateTags(imageId),
+    onSuccess: (data) => {
+      setTags(data.tags);
+      queryClient.invalidateQueries({ queryKey: ["images"] });
+      toast({ title: "Tags generated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to generate tags", variant: "destructive" });
+    },
+  });
 
   useEffect(() => {
     if (image) {
@@ -159,7 +185,25 @@ export function DetailPanel({ image, onClose, onDeleted }: DetailPanelProps) {
         </section>
 
         <section>
-          <h3 className="text-white text-base font-medium mb-3">Tags</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-white text-base font-medium">Tags</h3>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => generateTags.mutate(image.id)}
+              disabled={generateTags.isPending}
+              className="h-7 px-2 text-xs"
+              style={{ backgroundColor: "#2a2a2a" }}
+              data-testid="button-generate-tags"
+            >
+              {generateTags.isPending ? (
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              ) : (
+                <Wand2 className="w-3 h-3 mr-1" />
+              )}
+              AI Tags
+            </Button>
+          </div>
           <div className="flex flex-wrap gap-2 mb-3">
             {tags.map((tag, index) => (
               <Badge
@@ -198,7 +242,25 @@ export function DetailPanel({ image, onClose, onDeleted }: DetailPanelProps) {
         </section>
 
         <section>
-          <h3 className="text-white text-base font-medium mb-3">Caption</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-white text-base font-medium">Caption</h3>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => generateCaption.mutate(image.id)}
+              disabled={generateCaption.isPending}
+              className="h-7 px-2 text-xs"
+              style={{ backgroundColor: "#2a2a2a" }}
+              data-testid="button-generate-caption"
+            >
+              {generateCaption.isPending ? (
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+              ) : (
+                <Wand2 className="w-3 h-3 mr-1" />
+              )}
+              AI Caption
+            </Button>
+          </div>
           <Textarea
             value={caption}
             onChange={(e) => setCaption(e.target.value)}

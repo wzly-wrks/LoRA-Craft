@@ -4,6 +4,7 @@ import multer from "multer";
 import { createHash } from "crypto";
 import { storage } from "./storage";
 import { objectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { generateCaption, generateTags } from "./captioning";
 import {
   insertWorkspaceSchema,
   insertDatasetSchema,
@@ -453,6 +454,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error running dedupe:", error);
       res.status(500).json({ error: "Failed to run deduplication" });
+    }
+  });
+
+  app.post("/api/images/:id/caption", async (req: Request, res: Response) => {
+    try {
+      const image = await storage.getImage(req.params.id);
+      if (!image) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+
+      const caption = await generateCaption(image.storageKey);
+      const updatedImage = await storage.updateImage(req.params.id, { caption });
+      
+      res.json({ caption, image: updatedImage });
+    } catch (error) {
+      console.error("Error generating caption:", error);
+      res.status(500).json({ error: "Failed to generate caption" });
+    }
+  });
+
+  app.post("/api/images/:id/tags", async (req: Request, res: Response) => {
+    try {
+      const image = await storage.getImage(req.params.id);
+      if (!image) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+
+      const tags = await generateTags(image.storageKey);
+      const updatedImage = await storage.updateImage(req.params.id, { tags });
+      
+      res.json({ tags, image: updatedImage });
+    } catch (error) {
+      console.error("Error generating tags:", error);
+      res.status(500).json({ error: "Failed to generate tags" });
+    }
+  });
+
+  app.post("/api/datasets/:datasetId/caption-all", async (req: Request, res: Response) => {
+    try {
+      const images = await storage.getImages(req.params.datasetId);
+      const uncaptionedImages = images.filter(img => !img.caption && !img.flaggedDuplicate);
+      
+      res.status(202).json({ 
+        message: "Captioning started",
+        totalImages: uncaptionedImages.length,
+      });
+
+      (async () => {
+        for (const img of uncaptionedImages) {
+          try {
+            const caption = await generateCaption(img.storageKey);
+            await storage.updateImage(img.id, { caption });
+          } catch (error) {
+            console.error(`Failed to caption image ${img.id}:`, error);
+          }
+        }
+      })();
+    } catch (error) {
+      console.error("Error starting batch caption:", error);
+      res.status(500).json({ error: "Failed to start batch captioning" });
+    }
+  });
+
+  app.post("/api/images/:id/resize", async (req: Request, res: Response) => {
+    try {
+      const { targetWidth, targetHeight, aspectRatio } = req.body;
+      const image = await storage.getImage(req.params.id);
+      if (!image) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+
+      const sharp = (await import("sharp")).default;
+      const buffer = await objectStorageService.downloadToBuffer(image.storageKey);
+      
+      let resizedBuffer: Buffer;
+      if (aspectRatio) {
+        const [w, h] = aspectRatio.split(":").map(Number);
+        const metadata = await sharp(buffer).metadata();
+        const currentWidth = metadata.width || 1024;
+        const currentHeight = metadata.height || 1024;
+        const currentRatio = currentWidth / currentHeight;
+        const targetRatio = w / h;
+        
+        let cropWidth = currentWidth;
+        let cropHeight = currentHeight;
+        
+        if (currentRatio > targetRatio) {
+          cropWidth = Math.round(currentHeight * targetRatio);
+        } else {
+          cropHeight = Math.round(currentWidth / targetRatio);
+        }
+        
+        const left = Math.round((currentWidth - cropWidth) / 2);
+        const top = Math.round((currentHeight - cropHeight) / 2);
+        
+        resizedBuffer = await sharp(buffer)
+          .extract({ left, top, width: cropWidth, height: cropHeight })
+          .toBuffer();
+      } else if (targetWidth && targetHeight) {
+        resizedBuffer = await sharp(buffer)
+          .resize(targetWidth, targetHeight, { fit: "cover" })
+          .toBuffer();
+      } else {
+        return res.status(400).json({ error: "Must provide targetWidth/targetHeight or aspectRatio" });
+      }
+
+      await objectStorageService.uploadBuffer(resizedBuffer, image.storageKey, image.mime || "image/jpeg");
+      
+      const newMetadata = await sharp(resizedBuffer).metadata();
+      const updatedImage = await storage.updateImage(req.params.id, {
+        width: newMetadata.width,
+        height: newMetadata.height,
+        aspectRatio: `${newMetadata.width}:${newMetadata.height}`,
+      } as any);
+      
+      res.json(updatedImage);
+    } catch (error) {
+      console.error("Error resizing image:", error);
+      res.status(500).json({ error: "Failed to resize image" });
     }
   });
 
