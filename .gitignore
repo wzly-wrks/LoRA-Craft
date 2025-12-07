@@ -7,3 +7,8 @@ vite.config.ts.*
 .replit
 src-tauri/target
 replit.md
+
+# Local data (contains API keys and user data)
+data/
+*.db
+*.db-journal
