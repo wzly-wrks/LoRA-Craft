@@ -115,34 +115,6 @@ LoRA Craft uses the Reddit API to allow users to search for reference images wit
 4. **Manual Image Selection**: Users review search results and manually select which images to add to their dataset
 5. **No Automated Scraping**: The app never performs bulk downloads or automated content collection
 
-### Reddit API Usage Summary
-
-LoRA Craft's Reddit integration is intentionally limited and fully compliant with Reddit's API policies:
-
-| Policy | Implementation |
-|--------|----------------|
-| **No scraping** | All requests go through the official API (`oauth.reddit.com`) with OAuth2 — no HTML parsing |
-| **Public data only** | Client Credentials flow cannot access private data or user accounts |
-| **No auto-downloads** | Users must manually select every image they want to save |
-| **Metadata only** | Only returns post metadata and image URLs — no Reddit content is stored, mirrored, or redistributed |
-| **User-controlled subreddits** | Users enter subreddit names manually in the UI — no preset or forced subreddits |
-| **No bulk crawling** | All searches are scoped to exactly what the user enters — no mass subreddit iteration |
-| **Rate limit respect** | 60 req/min enforced with built-in rate-limit handler and graceful error messages |
-
-These safeguards ensure LoRA Craft remains fully compliant with Reddit's API Terms of Service while providing a safe, user-driven way to find reference images.
-
-### Compliance Summary (For Reviewers)
-
-LoRA Craft is built to comply fully with Reddit API policies:
-
-- **Official API Only** — All Reddit calls go through `oauth.reddit.com` with OAuth2. No HTML scraping or unauthorized endpoints.
-- **Public Data Only** — The app never accesses private data or user-specific content beyond what is publicly available.
-- **User-Driven Searches** — Users manually specify subreddits and search terms; no preset or batch-wide searches.
-- **Manual Download Only** — Images aren't downloaded automatically; users manually select what to save.
-- **Metadata-Only Handling** — Only retrieves post metadata and URLs; no Reddit content is mirrored or redistributed.
-- **Rate Limit Compliance** — Respects 60 req/min for OAuth clients and handles 429 responses gracefully.
-- **No Bulk/Automated Crawling** — No background jobs scanning Reddit. Every action is user-initiated.
-
 ### OAuth2 Implementation
 
 ```
