@@ -3,7 +3,7 @@ import { CoppermineGalleryCrawler, CoppermineImageInfo } from './galleryCrawler'
 import { downloadWithDeduplication, DownloadedImage } from './imageDownloader';
 import { ImageDeduplicator, meetsMinimumResolution } from './deduplicator';
 import { db as storage } from '../databaseAdapter';
-import { objectStorageService } from '../objectStorage';
+import { storageAdapter } from '../storageAdapter';
 import { crawlCache } from '../crawlCache';
 import type { CrawlJob, InsertCrawlJob } from '../../shared/schema';
 
@@ -431,12 +431,12 @@ export async function importCachedImages(
     try {
       const buffer = await crawlCache.readCachedImage(cachedImage);
 
-      const storageKey = objectStorageService.generateStorageKey(
+      const storageKey = storageAdapter.generateStorageKey(
         'images',
         `${celebrityName.replace(/\s+/g, '_')}_${cachedImage.hash}.jpg`
       );
 
-      await objectStorageService.uploadBuffer(
+      await storageAdapter.uploadBuffer(
         buffer,
         storageKey,
         cachedImage.contentType

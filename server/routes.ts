@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import { createHash } from "crypto";
 import { db as storage } from "./databaseAdapter";
-import { objectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { storageAdapter, StorageNotFoundError } from "./storageAdapter";
 import { generateCaption, generateTags } from "./captioning";
 import { registerSettingsRoutes } from "./settingsRoutes";
 import {
@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const imagesWithUrls = await Promise.all(
         images.map(async (img) => {
           try {
-            const url = await objectStorageService.getDownloadURL(img.storageKey);
+            const url = await storageAdapter.getDownloadURL(img.storageKey);
             return { ...img, url };
           } catch {
             return { ...img, url: null };
@@ -208,9 +208,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const results = [];
       for (const file of files) {
         const hash = computeImageHash(file.buffer);
-        const storageKey = objectStorageService.generateStorageKey("images", file.originalname);
+        const storageKey = storageAdapter.generateStorageKey("images", file.originalname);
         
-        await objectStorageService.uploadBuffer(file.buffer, storageKey, file.mimetype);
+        await storageAdapter.uploadBuffer(file.buffer, storageKey, file.mimetype);
 
         let width: number | undefined;
         let height: number | undefined;
@@ -297,7 +297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!image) {
         return res.status(404).json({ error: "Image not found" });
       }
-      const url = await objectStorageService.getDownloadURL(image.storageKey);
+      const url = await storageAdapter.getDownloadURL(image.storageKey);
       res.json({ ...image, url });
     } catch (error) {
       console.error("Error fetching image:", error);
@@ -327,9 +327,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const image = await storage.getImage(req.params.id);
       if (image) {
-        await objectStorageService.deleteFile(image.storageKey);
+        await storageAdapter.deleteFile(image.storageKey);
         if (image.thumbnailKey) {
-          await objectStorageService.deleteFile(image.thumbnailKey);
+          await storageAdapter.deleteFile(image.thumbnailKey);
         }
       }
       const deleted = await storage.deleteImage(req.params.id);
@@ -346,15 +346,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/storage/image/:storageKey(*)", async (req: Request, res: Response) => {
     try {
       const storageKey = `/${req.params.storageKey}`;
-      const file = await objectStorageService.getFile(storageKey);
-      const [exists] = await file.exists();
+      const exists = await storageAdapter.exists?.(storageKey);
       if (!exists) {
         return res.status(404).json({ error: "Image not found" });
       }
-      await objectStorageService.downloadObject(file, res);
+      if (storageAdapter.streamToResponse) {
+        await storageAdapter.streamToResponse(storageKey, res);
+      } else {
+        const buffer = await storageAdapter.getBuffer(storageKey);
+        res.send(buffer);
+      }
     } catch (error) {
       console.error("Error serving image:", error);
-      if (error instanceof ObjectNotFoundError) {
+      if (error instanceof StorageNotFoundError) {
         return res.status(404).json({ error: "Image not found" });
       }
       res.status(500).json({ error: "Failed to serve image" });
@@ -411,7 +415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const filename = `${String(i + 1).padStart(4, "0")}.${ext}`;
             
             try {
-              const buffer = await objectStorageService.downloadToBuffer(img.storageKey);
+              const buffer = await storageAdapter.getBuffer(img.storageKey);
               archive.append(buffer, { name: `images/${filename}` });
               
               if (img.caption) {
@@ -439,10 +443,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           const zipBuffer = Buffer.concat(chunks);
-          const zipKey = objectStorageService.generateStorageKey("exports", `${dataset.name.replace(/\s+/g, "_")}.zip`);
-          await objectStorageService.uploadBuffer(zipBuffer, zipKey, "application/zip");
+          const zipKey = storageAdapter.generateStorageKey("exports", `${dataset.name.replace(/\s+/g, "_")}.zip`);
+          await storageAdapter.uploadBuffer(zipBuffer, zipKey, "application/zip");
 
-          const downloadUrl = await objectStorageService.getDownloadURL(zipKey);
+          const downloadUrl = await storageAdapter.getDownloadURL(zipKey);
 
           await storage.updateExport(exportRecord.id, {
             status: "completed",
@@ -475,7 +479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (exportRecord.status === "completed" && exportRecord.zipKey) {
         try {
-          const downloadUrl = await objectStorageService.getDownloadURL(exportRecord.zipKey);
+          const downloadUrl = await storageAdapter.getDownloadURL(exportRecord.zipKey);
           return res.json({ ...exportRecord, downloadUrl });
         } catch {
           return res.json(exportRecord);
@@ -585,7 +589,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const sharp = (await import("sharp")).default;
-      const buffer = await objectStorageService.downloadToBuffer(image.storageKey);
+      const buffer = await storageAdapter.getBuffer(image.storageKey);
       
       let resizedBuffer: Buffer;
       if (aspectRatio) {
@@ -619,7 +623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Must provide targetWidth/targetHeight or aspectRatio" });
       }
 
-      await objectStorageService.uploadBuffer(resizedBuffer, image.storageKey, image.mime || "image/jpeg");
+      await storageAdapter.uploadBuffer(resizedBuffer, image.storageKey, image.mime || "image/jpeg");
       
       const newMetadata = await sharp(resizedBuffer).metadata();
       const updatedImage = await storage.updateImage(req.params.id, {
@@ -643,11 +647,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { removeBackground } = await import("./imageProcessing");
-      const originalBuffer = await objectStorageService.downloadToBuffer(image.storageKey);
+      const originalBuffer = await storageAdapter.getBuffer(image.storageKey);
       const processedBuffer = await removeBackground(originalBuffer);
       
       const newStorageKey = image.storageKey.replace(/\.[^.]+$/, "_nobg.png");
-      await objectStorageService.uploadBuffer(processedBuffer, newStorageKey, "image/png");
+      await storageAdapter.uploadBuffer(processedBuffer, newStorageKey, "image/png");
       
       const sharp = (await import("sharp")).default;
       const metadata = await sharp(processedBuffer).metadata();
