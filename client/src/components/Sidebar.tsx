@@ -86,7 +86,7 @@ export function Sidebar({
       style={{ width, minWidth: 180 }}
       data-testid="sidebar"
     >
-      <div className="p-5">
+      <div className="p-5 flex justify-center">
         <img
           className="w-40 h-40 object-cover transition-smooth"
           alt="Lora craft"
