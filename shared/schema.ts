@@ -75,6 +75,27 @@ export const tasks = pgTable("tasks", {
   completedAt: timestamp("completed_at"),
 });
 
+export const crawlJobs = pgTable("crawl_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  datasetId: varchar("dataset_id").references(() => datasets.id, { onDelete: "cascade" }),
+  celebrityName: text("celebrity_name").notNull(),
+  status: text("status").notNull().default("pending"),
+  discoveredSites: jsonb("discovered_sites").default(sql`'[]'::jsonb`),
+  currentSite: text("current_site"),
+  pagesScanned: integer("pages_scanned").default(0),
+  imagesFound: integer("images_found").default(0),
+  imagesDownloaded: integer("images_downloaded").default(0),
+  duplicatesRemoved: integer("duplicates_removed").default(0),
+  minResolution: integer("min_resolution").default(300),
+  maxImages: integer("max_images").default(500),
+  crawlDepth: integer("crawl_depth").default(3),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
 export const insertWorkspaceSchema = createInsertSchema(workspaces).omit({
   id: true,
   createdAt: true,
@@ -102,6 +123,13 @@ export const insertExportSchema = createInsertSchema(exports).omit({
 export const insertTaskSchema = createInsertSchema(tasks).omit({
   id: true,
   createdAt: true,
+  completedAt: true,
+});
+
+export const insertCrawlJobSchema = createInsertSchema(crawlJobs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
   completedAt: true,
 });
 
@@ -133,4 +161,6 @@ export type Export = typeof exports.$inferSelect;
 export type InsertExport = z.infer<typeof insertExportSchema>;
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type CrawlJob = typeof crawlJobs.$inferSelect;
+export type InsertCrawlJob = z.infer<typeof insertCrawlJobSchema>;
 export type UpdateImage = z.infer<typeof updateImageSchema>;
