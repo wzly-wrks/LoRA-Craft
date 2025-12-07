@@ -45,9 +45,19 @@ img {
 }
 
 /* Disable overscroll bounce effect */
-html, body {
+html {
+  overscroll-behavior: none;
+}
+
+body {
   overscroll-behavior: none;
   overflow: hidden;
+}
+
+/* Allow overflow for scrollable pages */
+.scrollable-page {
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Prevent pull-to-refresh */

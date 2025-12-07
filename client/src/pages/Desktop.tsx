@@ -298,6 +298,11 @@ export const Desktop = (): JSX.Element => {
               id="name"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !createWorkspace.isPending) {
+                  handleCreateWorkspace();
+                }
+              }}
               placeholder="My Concept"
               className="surface-3 border-0 focus:ring-1 input-glow transition-smooth"
               data-testid="input-workspace-name"
@@ -350,6 +355,11 @@ export const Desktop = (): JSX.Element => {
               id="dataset-name"
               value={formName}
               onChange={(e) => setFormName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !createDataset.isPending) {
+                  handleCreateDataset();
+                }
+              }}
               placeholder="Training Set"
               className="surface-3 border-0 focus:ring-1 input-glow transition-smooth"
               data-testid="input-dataset-name"

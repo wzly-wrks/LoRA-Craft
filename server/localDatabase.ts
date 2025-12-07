@@ -224,9 +224,10 @@ export const localDb = {
     return this.getWorkspace(id);
   },
 
-  deleteWorkspace(id: string): void {
+  deleteWorkspace(id: string): boolean {
     const stmt = db.prepare('DELETE FROM workspaces WHERE id = ?');
-    stmt.run(id);
+    const result = stmt.run(id);
+    return result.changes > 0;
   },
 
   getDatasets(workspaceId: string): Dataset[] {
@@ -290,9 +291,10 @@ export const localDb = {
     return this.getDataset(id);
   },
 
-  deleteDataset(id: string): void {
+  deleteDataset(id: string): boolean {
     const stmt = db.prepare('DELETE FROM datasets WHERE id = ?');
-    stmt.run(id);
+    const result = stmt.run(id);
+    return result.changes > 0;
   },
 
   getImages(datasetId: string): Image[] {
@@ -382,9 +384,10 @@ export const localDb = {
     return this.getImage(id);
   },
 
-  deleteImage(id: string): void {
+  deleteImage(id: string): boolean {
     const stmt = db.prepare('DELETE FROM images WHERE id = ?');
-    stmt.run(id);
+    const result = stmt.run(id);
+    return result.changes > 0;
   },
 
   getExports(datasetId: string): Export[] {

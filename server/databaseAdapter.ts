@@ -7,20 +7,20 @@ export interface IDatabase {
   getWorkspace(id: string): Promise<Workspace | undefined> | Workspace | undefined;
   createWorkspace(data: InsertWorkspace): Promise<Workspace> | Workspace;
   updateWorkspace(id: string, data: Partial<InsertWorkspace>): Promise<Workspace | undefined> | Workspace | undefined;
-  deleteWorkspace(id: string): Promise<void> | void;
+  deleteWorkspace(id: string): Promise<boolean> | boolean;
 
   getDatasets(workspaceId: string): Promise<Dataset[]> | Dataset[];
   getDataset(id: string): Promise<Dataset | undefined> | Dataset | undefined;
   createDataset(data: InsertDataset): Promise<Dataset> | Dataset;
   updateDataset(id: string, data: Partial<InsertDataset>): Promise<Dataset | undefined> | Dataset | undefined;
-  deleteDataset(id: string): Promise<void> | void;
+  deleteDataset(id: string): Promise<boolean> | boolean;
 
   getImages(datasetId: string): Promise<Image[]> | Image[];
   getImage(id: string): Promise<Image | undefined> | Image | undefined;
   getImagesByHash(hash: string, datasetId: string): Promise<Image[]> | Image[];
   createImage(data: InsertImage): Promise<Image> | Image;
   updateImage(id: string, data: Partial<Image>): Promise<Image | undefined> | Image | undefined;
-  deleteImage(id: string): Promise<void> | void;
+  deleteImage(id: string): Promise<boolean> | boolean;
 
   getExports(datasetId: string): Promise<Export[]> | Export[];
   getExport(id: string): Promise<Export | undefined> | Export | undefined;

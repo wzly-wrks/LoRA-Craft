@@ -20,6 +20,7 @@ export function Modal({
   showCloseButton = true,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const previouslyOpen = useRef(false);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -30,8 +31,13 @@ export function Modal({
 
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
-      // Focus the modal
-      modalRef.current?.focus();
+      // Only focus modal on initial open, not on re-renders
+      if (!previouslyOpen.current) {
+        modalRef.current?.focus();
+      }
+      previouslyOpen.current = true;
+    } else {
+      previouslyOpen.current = false;
     }
 
     return () => {

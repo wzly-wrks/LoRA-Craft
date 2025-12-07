@@ -193,8 +193,8 @@ export default function TrainingPage() {
   const trainings = trainingsData?.trainings || [];
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: "#0f0f0f" }}>
-      <div className="max-w-4xl mx-auto">
+    <div className="h-screen overflow-y-auto p-6" style={{ backgroundColor: "#0f0f0f" }}>
+      <div className="max-w-4xl mx-auto pb-8">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-4">
             <Link href="/">

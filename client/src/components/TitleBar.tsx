@@ -62,15 +62,7 @@ export function TitleBar() {
 
   return (
     <header className="title-bar" data-testid="title-bar">
-      <div className="flex items-center gap-3 px-4 drag-region">
-        <div 
-          className="w-4 h-4 rounded-sm flex items-center justify-center flex-shrink-0"
-          style={{ background: "linear-gradient(135deg, #ff58a5 0%, #ff8cc8 100%)" }}
-        >
-          <span className="text-[8px] font-bold text-white">L</span>
-        </div>
-        <span className="text-xs font-medium text-neutral-400 truncate">LoRA Craft</span>
-      </div>
+      <div className="flex-1 drag-region" />
       
       {isTauri && (
         <div className="flex no-drag">
