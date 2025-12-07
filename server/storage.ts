@@ -6,6 +6,7 @@ import {
   images,
   exports,
   tasks,
+  crawlJobs,
   type Workspace,
   type InsertWorkspace,
   type Dataset,
@@ -17,6 +18,8 @@ import {
   type Task,
   type InsertTask,
   type UpdateImage,
+  type CrawlJob,
+  type InsertCrawlJob,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -48,6 +51,11 @@ export interface IStorage {
   getTask(id: string): Promise<Task | undefined>;
   createTask(task: InsertTask): Promise<Task>;
   updateTask(id: string, task: Partial<Task>): Promise<Task | undefined>;
+
+  getCrawlJobs(datasetId?: string): Promise<CrawlJob[]>;
+  getCrawlJob(id: string): Promise<CrawlJob | undefined>;
+  createCrawlJob(job: InsertCrawlJob): Promise<CrawlJob>;
+  updateCrawlJob(id: string, job: Partial<CrawlJob>): Promise<CrawlJob | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -186,6 +194,28 @@ export class DatabaseStorage implements IStorage {
 
   async updateTask(id: string, task: Partial<Task>): Promise<Task | undefined> {
     const [updated] = await db.update(tasks).set(task).where(eq(tasks.id, id)).returning();
+    return updated;
+  }
+
+  async getCrawlJobs(datasetId?: string): Promise<CrawlJob[]> {
+    if (datasetId) {
+      return db.select().from(crawlJobs).where(eq(crawlJobs.datasetId, datasetId)).orderBy(desc(crawlJobs.createdAt));
+    }
+    return db.select().from(crawlJobs).orderBy(desc(crawlJobs.createdAt));
+  }
+
+  async getCrawlJob(id: string): Promise<CrawlJob | undefined> {
+    const [job] = await db.select().from(crawlJobs).where(eq(crawlJobs.id, id));
+    return job;
+  }
+
+  async createCrawlJob(job: InsertCrawlJob): Promise<CrawlJob> {
+    const [created] = await db.insert(crawlJobs).values(job).returning();
+    return created;
+  }
+
+  async updateCrawlJob(id: string, job: Partial<CrawlJob>): Promise<CrawlJob | undefined> {
+    const [updated] = await db.update(crawlJobs).set({ ...job, updatedAt: new Date() }).where(eq(crawlJobs.id, id)).returning();
     return updated;
   }
 }

@@ -1,4 +1,4 @@
-import type { Workspace, Dataset, Image, Export, Task, InsertWorkspace, InsertDataset, InsertImage, InsertExport, InsertTask } from '@shared/schema';
+import type { Workspace, Dataset, Image, Export, Task, CrawlJob, InsertWorkspace, InsertDataset, InsertImage, InsertExport, InsertTask, InsertCrawlJob } from '@shared/schema';
 
 const isElectron = process.env.ELECTRON_APP === 'true';
 
@@ -26,6 +26,11 @@ export interface IDatabase {
   getExport(id: string): Promise<Export | undefined> | Export | undefined;
   createExport(data: InsertExport): Promise<Export> | Export;
   updateExport(id: string, data: Partial<Export>): Promise<Export | undefined> | Export | undefined;
+
+  getCrawlJobs?(datasetId?: string): Promise<CrawlJob[]> | CrawlJob[];
+  getCrawlJob?(id: string): Promise<CrawlJob | undefined> | CrawlJob | undefined;
+  createCrawlJob?(data: InsertCrawlJob): Promise<CrawlJob> | CrawlJob;
+  updateCrawlJob?(id: string, data: Partial<CrawlJob>): Promise<CrawlJob | undefined> | CrawlJob | undefined;
 
   getSetting?(key: string): string | undefined;
   setSetting?(key: string, value: string): void;
