@@ -5,8 +5,8 @@ import { ImageGrid } from "@/components/ImageGrid";
 import { DetailPanel } from "@/components/DetailPanel";
 import { DatasetToolbar } from "@/components/DatasetToolbar";
 import { WebSearchModal } from "@/components/WebSearchModal";
-import { useWorkspaces, useCreateWorkspace } from "@/hooks/useWorkspaces";
-import { useDatasets, useCreateDataset } from "@/hooks/useDatasets";
+import { useWorkspaces, useCreateWorkspace, useDeleteWorkspace } from "@/hooks/useWorkspaces";
+import { useDatasets, useCreateDataset, useDeleteDataset } from "@/hooks/useDatasets";
 import { useImages, useImage } from "@/hooks/useImages";
 import { useToast } from "@/hooks/use-toast";
 import { Modal, ModalFooter } from "@/components/ui/modal";
@@ -71,6 +71,8 @@ export const Desktop = (): JSX.Element => {
 
   const createWorkspace = useCreateWorkspace();
   const createDataset = useCreateDataset();
+  const deleteWorkspace = useDeleteWorkspace();
+  const deleteDataset = useDeleteDataset();
 
   const datasetsMap = useMemo(() => {
     const map = new Map<string, Dataset[]>();
@@ -182,6 +184,33 @@ export const Desktop = (): JSX.Element => {
     refetchImages();
   };
 
+  const handleDeleteWorkspace = async (id: string) => {
+    try {
+      await deleteWorkspace.mutateAsync(id);
+      if (selectedWorkspaceId === id) {
+        setSelectedWorkspaceId(undefined);
+        setSelectedDatasetId(undefined);
+        setSelectedImageId(undefined);
+      }
+      toast({ title: "Concept deleted successfully" });
+    } catch {
+      toast({ title: "Failed to delete concept", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteDataset = async (id: string) => {
+    try {
+      await deleteDataset.mutateAsync(id);
+      if (selectedDatasetId === id) {
+        setSelectedDatasetId(undefined);
+        setSelectedImageId(undefined);
+      }
+      toast({ title: "Dataset deleted successfully" });
+    } catch {
+      toast({ title: "Failed to delete dataset", variant: "destructive" });
+    }
+  };
+
   return (
     <div className="w-full h-screen flex flex-col surface-0 overflow-hidden">
       <TitleBar />
@@ -199,8 +228,12 @@ export const Desktop = (): JSX.Element => {
             onSelectWorkspace={handleSelectWorkspace}
             onSelectDataset={handleSelectDataset}
             onNewConcept={handleNewConcept}
+            onDeleteWorkspace={handleDeleteWorkspace}
+            onDeleteDataset={handleDeleteDataset}
             isLoading={workspacesLoading}
             width={sidebarWidth}
+            isDeletingWorkspace={deleteWorkspace.isPending}
+            isDeletingDataset={deleteDataset.isPending}
           />
           <div
             ref={resizeRef}
