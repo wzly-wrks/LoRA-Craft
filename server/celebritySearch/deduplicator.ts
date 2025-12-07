@@ -1,4 +1,4 @@
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 
 export interface ImageHash {
   hash: string;
@@ -16,7 +16,7 @@ const HASH_SIZE = 16;
 const HASH_BITS = HASH_SIZE * HASH_SIZE;
 
 export async function computePerceptualHash(imageBuffer: Buffer): Promise<ImageHash> {
-  const image = (sharp as any)(imageBuffer);
+  const image = sharp(imageBuffer);
   const metadata = await image.metadata();
   
   const resized = await image

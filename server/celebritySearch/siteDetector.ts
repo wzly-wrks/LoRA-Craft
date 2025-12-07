@@ -172,6 +172,7 @@ export async function detectCoppermineGallery(url: string): Promise<{
 
     const html = await response.text();
     const $ = cheerio.load(html);
+    const baseUrl = new URL(url);
 
     let score = 0;
     const foundIndicators: string[] = [];
@@ -183,10 +184,12 @@ export async function detectCoppermineGallery(url: string): Promise<{
       }
     }
 
-    const links = $('a[href*="index.php?cat="], a[href*="thumbnails.php?album="], a[href*="displayimage.php?pid="]');
-    if (links.length > 0) {
+    // Look for Coppermine-style links with proper path detection
+    // These links might be under /photos/, /gallery/, etc.
+    const allLinks = $('a[href*="index.php?cat="], a[href*="thumbnails.php?album="], a[href*="displayimage.php?pid="], a[href*="displayimage.php?pos="]');
+    if (allLinks.length > 0) {
       score += 3;
-      foundIndicators.push(`Found ${links.length} Coppermine-style links`);
+      foundIndicators.push(`Found ${allLinks.length} Coppermine-style links`);
     }
 
     const isCoppermine = score >= 2;
@@ -194,11 +197,69 @@ export async function detectCoppermineGallery(url: string): Promise<{
 
     let categoryUrl: string | undefined;
     if (isCoppermine) {
-      const baseUrl = new URL(url);
+      // Try to find the actual gallery path from links
+      // Look for any link with thumbnails.php or displayimage.php to find the real gallery base
+      let galleryBasePath = '';
+      
+      // Check thumbnails.php links first - they're most reliable for albums
+      const thumbnailLink = $('a[href*="thumbnails.php?album="]').first().attr('href');
+      console.log(`[SiteDetector] Found thumbnail link: ${thumbnailLink}`);
+      if (thumbnailLink) {
+        try {
+          const thumbUrl = new URL(thumbnailLink, baseUrl);
+          console.log(`[SiteDetector] Resolved thumbnail URL: ${thumbUrl.toString()}`);
+          // Extract the path before thumbnails.php
+          const pathMatch = thumbUrl.pathname.match(/^(.*)\/thumbnails\.php$/);
+          if (pathMatch) {
+            galleryBasePath = pathMatch[1];
+            console.log(`[SiteDetector] Extracted gallery base path: ${galleryBasePath}`);
+          }
+          // Use the album URL directly as it's more specific
+          categoryUrl = thumbUrl.toString();
+          console.log(`[SiteDetector] Using categoryUrl: ${categoryUrl}`);
+          return { isCoppermine, categoryUrl, confidence };
+        } catch (e) {
+          console.error(`[SiteDetector] Error parsing thumbnail URL:`, e);
+          // ignore URL parsing errors
+        }
+      }
+      
+      // Try displayimage.php links
+      const displayLink = $('a[href*="displayimage.php"]').first().attr('href');
+      if (displayLink) {
+        try {
+          const displayUrl = new URL(displayLink, baseUrl);
+          const pathMatch = displayUrl.pathname.match(/^(.*)\/displayimage\.php$/);
+          if (pathMatch) {
+            galleryBasePath = pathMatch[1];
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      // Try index.php?cat= links
       const catLink = $('a[href*="index.php?cat="]').first().attr('href');
       if (catLink) {
-        categoryUrl = new URL(catLink, baseUrl).toString();
-      } else {
+        try {
+          const catUrl = new URL(catLink, baseUrl);
+          const pathMatch = catUrl.pathname.match(/^(.*)\/index\.php$/);
+          if (pathMatch && !galleryBasePath) {
+            galleryBasePath = pathMatch[1];
+          }
+          if (!categoryUrl) {
+            categoryUrl = catUrl.toString();
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+      
+      // If we found a gallery base path, construct proper URL
+      if (galleryBasePath && !categoryUrl) {
+        categoryUrl = new URL(`${galleryBasePath}/index.php?cat=0`, baseUrl).toString();
+      } else if (!categoryUrl) {
+        // Default fallback
         categoryUrl = new URL('/index.php?cat=0', baseUrl).toString();
       }
     }

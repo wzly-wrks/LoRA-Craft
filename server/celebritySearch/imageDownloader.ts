@@ -1,5 +1,5 @@
 import fetch from 'node-fetch';
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 import { createHash } from 'crypto';
 
 export interface DownloadedImage {
@@ -32,8 +32,8 @@ const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
 const DEFAULT_OPTIONS: DownloadOptions = {
   minResolution: 300,
   maxSizeBytes: 50 * 1024 * 1024,
-  timeout: 30000,
-  retries: 2,
+  timeout: 10000, // 10 seconds - fail fast on slow/stuck downloads
+  retries: 1, // Reduce retries for faster overall progress
 };
 
 export async function downloadImage(
@@ -246,9 +246,10 @@ export async function downloadWithDeduplication(
   options: DownloadOptions & {
     minDelay?: number;
     maxDelay?: number;
-    onProgress?: (completed: number, total: number, result: DownloadResult, isDuplicate: boolean) => void;
+    onProgress?: (completed: number, total: number, result: DownloadResult, isDuplicate: boolean) => void | Promise<void>;
+    shouldCancel?: () => boolean;
   } = {}
-): Promise<{ results: DownloadResult[]; newImages: DownloadedImage[]; duplicateCount: number }> {
+): Promise<{ results: DownloadResult[]; newImages: DownloadedImage[]; duplicateCount: number; cancelled: boolean }> {
   const downloader = new RateLimitedDownloader({
     minDelay: options.minDelay || 500,
     maxDelay: options.maxDelay || 1500,
@@ -258,8 +259,16 @@ export async function downloadWithDeduplication(
   const newImages: DownloadedImage[] = [];
   let duplicateCount = 0;
   let completed = 0;
+  let cancelled = false;
 
   for (const url of urls) {
+    // Check for cancellation before each download
+    if (options.shouldCancel?.()) {
+      console.log(`[Downloader] Cancellation requested, stopping after ${completed}/${urls.length} downloads`);
+      cancelled = true;
+      break;
+    }
+
     const result = await downloader.download(url, options);
     results.push(result);
     completed++;
@@ -277,11 +286,11 @@ export async function downloadWithDeduplication(
     }
 
     if (options.onProgress) {
-      options.onProgress(completed, urls.length, result, isDuplicate);
+      await options.onProgress(completed, urls.length, result, isDuplicate);
     }
   }
 
-  return { results, newImages, duplicateCount };
+  return { results, newImages, duplicateCount, cancelled };
 }
 
 function delay(ms: number): Promise<void> {

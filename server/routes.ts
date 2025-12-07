@@ -683,6 +683,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Dataset ID is required" });
       }
 
+      // Get Brave API key from settings (stored as JSON in app_settings)
+      let braveApiKey: string | undefined;
+      const settingsJson = storage.getSetting?.("app_settings");
+      if (settingsJson) {
+        try {
+          const settings = JSON.parse(settingsJson);
+          braveApiKey = settings?.search?.brave?.apiKey;
+        } catch (e) {
+          console.error("Error parsing app_settings:", e);
+        }
+      }
+      
+      if (!braveApiKey) {
+        return res.status(400).json({ error: "Brave API key not configured. Please set it in Settings." });
+      }
+
       const { runCelebritySearch } = await import("./celebritySearch");
       
       // Run the search asynchronously and return immediately with job ID
@@ -690,6 +706,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxImages: options?.maxImages || 500,
         minResolution: options?.minResolution || 300,
         crawlDepth: options?.crawlDepth || 3,
+        braveApiKey,
       });
       
       res.json(result);
@@ -742,6 +759,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get cached images for a crawl job (for preview/review)
+  app.get("/api/crawl-jobs/:id/cached-images", async (req: Request, res: Response) => {
+    try {
+      const { getCachedImages } = await import("./celebritySearch");
+      const images = getCachedImages(req.params.id);
+      res.json({ images });
+    } catch (error) {
+      console.error("Error fetching cached images:", error);
+      res.status(500).json({ error: "Failed to fetch cached images" });
+    }
+  });
+
+  // Serve a cached image file
+  app.get("/api/crawl-jobs/:jobId/cached-images/:imageId", async (req: Request, res: Response) => {
+    try {
+      const { crawlCache } = await import("./celebritySearch");
+      const cachedImage = crawlCache.getCachedImage(req.params.jobId, req.params.imageId);
+      
+      if (!cachedImage) {
+        return res.status(404).json({ error: "Cached image not found" });
+      }
+
+      const buffer = await crawlCache.readCachedImage(cachedImage);
+      res.setHeader('Content-Type', cachedImage.contentType);
+      res.setHeader('Content-Length', buffer.length);
+      res.send(buffer);
+    } catch (error) {
+      console.error("Error serving cached image:", error);
+      res.status(500).json({ error: "Failed to serve cached image" });
+    }
+  });
+
+  // Import cached images to permanent storage
+  app.post("/api/crawl-jobs/:id/import", async (req: Request, res: Response) => {
+    try {
+      const { datasetId, imageIds } = req.body;
+      
+      if (!datasetId) {
+        return res.status(400).json({ error: "Dataset ID is required" });
+      }
+
+      const { importCachedImages } = await import("./celebritySearch");
+      const result = await importCachedImages(req.params.id, datasetId, imageIds);
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error importing cached images:", error);
+      res.status(500).json({ error: "Failed to import cached images" });
+    }
+  });
+
+  // Discard cached images without importing
+  app.post("/api/crawl-jobs/:id/discard", async (req: Request, res: Response) => {
+    try {
+      const { imageIds } = req.body;
+      
+      const { discardCachedImages } = await import("./celebritySearch");
+      await discardCachedImages(req.params.id, imageIds);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error discarding cached images:", error);
+      res.status(500).json({ error: "Failed to discard cached images" });
+    }
+  });
+
+  // Get cache statistics
+  app.get("/api/crawl-cache/stats", async (req: Request, res: Response) => {
+    try {
+      const { crawlCache } = await import("./celebritySearch");
+      const stats = await crawlCache.getCacheStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching cache stats:", error);
+      res.status(500).json({ error: "Failed to fetch cache stats" });
+    }
+  });
+
+  // Clear all cache (manual cleanup)
+  app.post("/api/crawl-cache/clear", async (req: Request, res: Response) => {
+    try {
+      const { crawlCache } = await import("./celebritySearch");
+      await crawlCache.clearAllCache();
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error clearing cache:", error);
+      res.status(500).json({ error: "Failed to clear cache" });
+    }
+  });
+
   // Discover fan sites for a celebrity (preview before full crawl)
   app.post("/api/celebrity-search/discover", async (req: Request, res: Response) => {
     try {
@@ -751,8 +858,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Celebrity name is required" });
       }
 
-      // Get Brave API key from settings
-      const braveApiKey = storage.getSetting?.("BRAVE_API_KEY");
+      // Get Brave API key from settings (stored as JSON in app_settings)
+      let braveApiKey: string | undefined;
+      const settingsJson = storage.getSetting?.("app_settings");
+      if (settingsJson) {
+        try {
+          const settings = JSON.parse(settingsJson);
+          braveApiKey = settings?.search?.brave?.apiKey;
+        } catch (e) {
+          console.error("Error parsing app_settings:", e);
+        }
+      }
+      
       if (!braveApiKey) {
         return res.status(400).json({ error: "Brave API key not configured. Please set it in Settings." });
       }

@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
-import type { Workspace, Dataset, Image, Export, Task, InsertWorkspace, InsertDataset, InsertImage, InsertExport, InsertTask } from '@shared/schema';
+import type { Workspace, Dataset, Image, Export, Task, CrawlJob, InsertWorkspace, InsertDataset, InsertImage, InsertExport, InsertTask, InsertCrawlJob } from '@shared/schema';
 
 const isElectron = process.env.ELECTRON_APP === 'true';
 const dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'lora-craft.db');
@@ -98,6 +98,29 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_images_dataset ON images(dataset_id);
   CREATE INDEX IF NOT EXISTS idx_images_hash ON images(hash);
   CREATE INDEX IF NOT EXISTS idx_exports_dataset ON exports(dataset_id);
+
+  CREATE TABLE IF NOT EXISTS crawl_jobs (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    dataset_id TEXT REFERENCES datasets(id) ON DELETE CASCADE,
+    celebrity_name TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    discovered_sites TEXT DEFAULT '[]',
+    current_site TEXT,
+    pages_scanned INTEGER DEFAULT 0,
+    images_found INTEGER DEFAULT 0,
+    images_downloaded INTEGER DEFAULT 0,
+    duplicates_removed INTEGER DEFAULT 0,
+    min_resolution INTEGER DEFAULT 300,
+    max_images INTEGER DEFAULT 500,
+    crawl_depth INTEGER DEFAULT 3,
+    metadata TEXT DEFAULT '{}',
+    error TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now')),
+    completed_at TEXT
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_crawl_jobs_dataset ON crawl_jobs(dataset_id);
 `);
 
 function toWorkspace(row: any): Workspace {
@@ -178,6 +201,29 @@ function toTask(row: any): Task {
     result: row.result ? JSON.parse(row.result) : null,
     error: row.error,
     createdAt: new Date(row.created_at),
+    completedAt: row.completed_at ? new Date(row.completed_at) : null
+  };
+}
+
+function toCrawlJob(row: any): CrawlJob {
+  return {
+    id: row.id,
+    datasetId: row.dataset_id,
+    celebrityName: row.celebrity_name,
+    status: row.status,
+    discoveredSites: row.discovered_sites ? JSON.parse(row.discovered_sites) : [],
+    currentSite: row.current_site,
+    pagesScanned: row.pages_scanned,
+    imagesFound: row.images_found,
+    imagesDownloaded: row.images_downloaded,
+    duplicatesRemoved: row.duplicates_removed,
+    minResolution: row.min_resolution,
+    maxImages: row.max_images,
+    crawlDepth: row.crawl_depth,
+    metadata: row.metadata ? JSON.parse(row.metadata) : {},
+    error: row.error,
+    createdAt: new Date(row.created_at),
+    updatedAt: new Date(row.updated_at),
     completedAt: row.completed_at ? new Date(row.completed_at) : null
   };
 }
@@ -449,6 +495,124 @@ export const localDb = {
     const stmt = db.prepare(`UPDATE exports SET ${updates.join(', ')} WHERE id = ?`);
     stmt.run(...values);
     return this.getExport(id);
+  },
+
+  // Crawl Jobs
+  getCrawlJobs(datasetId?: string): CrawlJob[] {
+    if (datasetId) {
+      const stmt = db.prepare('SELECT * FROM crawl_jobs WHERE dataset_id = ? ORDER BY created_at DESC');
+      return stmt.all(datasetId).map(toCrawlJob);
+    }
+    const stmt = db.prepare('SELECT * FROM crawl_jobs ORDER BY created_at DESC');
+    return stmt.all().map(toCrawlJob);
+  },
+
+  getCrawlJob(id: string): CrawlJob | undefined {
+    const stmt = db.prepare('SELECT * FROM crawl_jobs WHERE id = ?');
+    const row = stmt.get(id);
+    return row ? toCrawlJob(row) : undefined;
+  },
+
+  createCrawlJob(data: InsertCrawlJob): CrawlJob {
+    const id = randomUUID();
+    const stmt = db.prepare(`
+      INSERT INTO crawl_jobs (
+        id, dataset_id, celebrity_name, status, discovered_sites, current_site,
+        pages_scanned, images_found, images_downloaded, duplicates_removed,
+        min_resolution, max_images, crawl_depth, metadata, error
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    stmt.run(
+      id,
+      data.datasetId || null,
+      data.celebrityName,
+      data.status || 'pending',
+      JSON.stringify(data.discoveredSites || []),
+      data.currentSite || null,
+      data.pagesScanned || 0,
+      data.imagesFound || 0,
+      data.imagesDownloaded || 0,
+      data.duplicatesRemoved || 0,
+      data.minResolution || 300,
+      data.maxImages || 500,
+      data.crawlDepth || 3,
+      JSON.stringify(data.metadata || {}),
+      data.error || null
+    );
+    return this.getCrawlJob(id)!;
+  },
+
+  updateCrawlJob(id: string, data: Partial<CrawlJob>): CrawlJob | undefined {
+    const updates: string[] = ['updated_at = datetime(\'now\')'];
+    const values: any[] = [];
+    
+    if (data.datasetId !== undefined) {
+      updates.push('dataset_id = ?');
+      values.push(data.datasetId);
+    }
+    if (data.celebrityName !== undefined) {
+      updates.push('celebrity_name = ?');
+      values.push(data.celebrityName);
+    }
+    if (data.status !== undefined) {
+      updates.push('status = ?');
+      values.push(data.status);
+    }
+    if (data.discoveredSites !== undefined) {
+      updates.push('discovered_sites = ?');
+      values.push(JSON.stringify(data.discoveredSites));
+    }
+    if (data.currentSite !== undefined) {
+      updates.push('current_site = ?');
+      values.push(data.currentSite);
+    }
+    if (data.pagesScanned !== undefined) {
+      updates.push('pages_scanned = ?');
+      values.push(data.pagesScanned);
+    }
+    if (data.imagesFound !== undefined) {
+      updates.push('images_found = ?');
+      values.push(data.imagesFound);
+    }
+    if (data.imagesDownloaded !== undefined) {
+      updates.push('images_downloaded = ?');
+      values.push(data.imagesDownloaded);
+    }
+    if (data.duplicatesRemoved !== undefined) {
+      updates.push('duplicates_removed = ?');
+      values.push(data.duplicatesRemoved);
+    }
+    if (data.minResolution !== undefined) {
+      updates.push('min_resolution = ?');
+      values.push(data.minResolution);
+    }
+    if (data.maxImages !== undefined) {
+      updates.push('max_images = ?');
+      values.push(data.maxImages);
+    }
+    if (data.crawlDepth !== undefined) {
+      updates.push('crawl_depth = ?');
+      values.push(data.crawlDepth);
+    }
+    if (data.metadata !== undefined) {
+      updates.push('metadata = ?');
+      values.push(JSON.stringify(data.metadata));
+    }
+    if (data.error !== undefined) {
+      updates.push('error = ?');
+      values.push(data.error);
+    }
+    if (data.completedAt !== undefined) {
+      updates.push('completed_at = ?');
+      values.push(data.completedAt?.toISOString() || null);
+    }
+    
+    values.push(id);
+
+    const stmt = db.prepare(`UPDATE crawl_jobs SET ${updates.join(', ')} WHERE id = ?`);
+    stmt.run(...values);
+    return this.getCrawlJob(id);
   },
 
   getSetting(key: string): string | undefined {

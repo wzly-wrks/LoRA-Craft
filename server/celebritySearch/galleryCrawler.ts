@@ -128,13 +128,25 @@ export async function parseAlbumPage(
     }
   });
 
-  $('img.thumbnail, img[src*="thumb_"], img[src*="/thumb/"], .thumbnails img').each((_, elem) => {
+  // Broader selector to catch more thumbnail images
+  $('img.thumbnail, img[src*="thumb"], img[src*="tn_"], .thumbnails img, .thumb img, td.tableb img, .image img, a[href*="displayimage"] img').each((_, elem) => {
     const src = $(elem).attr('src');
-    if (src) {
+    if (src && isImageUrl(src)) {
       const fullUrl = resolveUrl(src, baseUrl);
       const fullSizeUrl = thumbnailToFullSize(fullUrl);
-      if (fullSizeUrl && !imageUrls.includes(fullSizeUrl)) {
+      if (!imageUrls.includes(fullSizeUrl)) {
         imageUrls.push(fullSizeUrl);
+      }
+    }
+  });
+
+  // Also look for links that directly point to full-size images
+  $('a[href$=".jpg"], a[href$=".jpeg"], a[href$=".png"], a[href$=".webp"]').each((_, elem) => {
+    const href = $(elem).attr('href');
+    if (href && isImageUrl(href)) {
+      const fullUrl = resolveUrl(href, baseUrl);
+      if (!imageUrls.includes(fullUrl)) {
+        imageUrls.push(fullUrl);
       }
     }
   });
@@ -159,15 +171,57 @@ export async function parseImagePage(
 
   let fullSizeUrl: string | undefined;
 
-  const mainImage = $('#cpgimage, img.image, img.photo, .display img, #fullsize-image, .main-image img').first();
+  // Try various selectors for the main display image
+  const mainImage = $('#cpgimage, img.image, img.photo, .display img, #fullsize-image, .main-image img, td.tableb img[src*="/albums/"]').first();
   if (mainImage.length) {
     fullSizeUrl = mainImage.attr('src');
   }
 
+  // Look for a link that points to the full-size image
   if (!fullSizeUrl) {
-    const largeLink = $('a[href*="/albums/"][href$=".jpg"], a[href*="/albums/"][href$=".jpeg"], a[href*="/albums/"][href$=".png"]').first();
+    const largeLink = $('a[href*="/albums/"][href$=".jpg"], a[href*="/albums/"][href$=".jpeg"], a[href*="/albums/"][href$=".png"], a[href*="/albums/"][href$=".webp"]').first();
     if (largeLink.length) {
       fullSizeUrl = largeLink.attr('href');
+    }
+  }
+
+  // Find any image in /albums/ that's not a thumbnail
+  if (!fullSizeUrl) {
+    $('img[src*="/albums/"]').each((_, elem) => {
+      const src = $(elem).attr('src');
+      if (src && !src.includes('thumb_') && !src.includes('/thumb/') && !src.includes('tn_')) {
+        fullSizeUrl = src;
+        return false;
+      }
+    });
+  }
+
+  // If we found an intermediate image (normal_), convert to full size
+  if (!fullSizeUrl) {
+    $('img[src*="normal_"]').each((_, elem) => {
+      const src = $(elem).attr('src');
+      if (src) {
+        fullSizeUrl = src.replace('normal_', '');
+        return false;
+      }
+    });
+  }
+
+  // Last resort: find the largest-looking image
+  if (!fullSizeUrl) {
+    $('img').each((_, elem) => {
+      const src = $(elem).attr('src');
+      if (src && isLikelyFullSizeImage(src)) {
+        fullSizeUrl = src;
+        return false;
+      }
+    });
+  }
+
+  if (!fullSizeUrl) {
+    const intermediateUrl = findIntermediateImage($, baseUrl);
+    if (intermediateUrl) {
+      fullSizeUrl = intermediateToFullSize(intermediateUrl);
     }
   }
 
@@ -230,6 +284,15 @@ function isLikelyFullSizeImage(src: string): boolean {
   return false;
 }
 
+function isImageUrl(url: string): boolean {
+  const lowerUrl = url.toLowerCase();
+  // Check if URL looks like an image
+  return /\.(jpe?g|png|gif|webp|bmp)(\?|$)/i.test(lowerUrl) ||
+    lowerUrl.includes('/albums/') ||
+    lowerUrl.includes('/photos/') ||
+    lowerUrl.includes('/images/');
+}
+
 function findIntermediateImage($: cheerio.CheerioAPI, baseUrl: string): string | undefined {
   let intermediateUrl: string | undefined;
   
@@ -248,14 +311,32 @@ function intermediateToFullSize(url: string): string {
   return url.replace(/normal_/g, '');
 }
 
-function thumbnailToFullSize(thumbnailUrl: string): string | undefined {
+function thumbnailToFullSize(thumbnailUrl: string): string {
+  // Common Coppermine thumbnail patterns
   if (thumbnailUrl.includes('thumb_')) {
     return thumbnailUrl.replace('thumb_', '');
   }
   if (thumbnailUrl.includes('/thumb/')) {
     return thumbnailUrl.replace('/thumb/', '/');
   }
-  return undefined;
+  // Some galleries use 'tn_' prefix
+  if (thumbnailUrl.includes('tn_')) {
+    return thumbnailUrl.replace('tn_', '');
+  }
+  // Some use '_thumb' suffix before extension
+  if (thumbnailUrl.match(/_thumb\.(jpe?g|png|gif|webp)$/i)) {
+    return thumbnailUrl.replace(/_thumb\./, '.');
+  }
+  // Some use '-thumb' suffix
+  if (thumbnailUrl.match(/-thumb\.(jpe?g|png|gif|webp)$/i)) {
+    return thumbnailUrl.replace(/-thumb\./, '.');
+  }
+  // Some use '_t' or '_s' (small) prefix
+  if (thumbnailUrl.match(/_(t|s)\.(jpe?g|png|gif|webp)$/i)) {
+    return thumbnailUrl.replace(/_(t|s)\./, '.');
+  }
+  // Return original URL if no pattern matches - let the downloader try it
+  return thumbnailUrl;
 }
 
 function getPageNumber(url: string): number {
@@ -274,6 +355,7 @@ function resolveUrl(href: string, baseUrl: string): string {
 export class CoppermineGalleryCrawler {
   private state: CrawlState;
   private baseUrl: string;
+  private galleryBasePath: string;
   private maxDepth: number;
   private onProgress?: (state: CrawlState) => void;
 
@@ -284,7 +366,22 @@ export class CoppermineGalleryCrawler {
       onProgress?: (state: CrawlState) => void;
     } = {}
   ) {
-    this.baseUrl = new URL(startUrl).origin;
+    const parsedUrl = new URL(startUrl);
+    
+    // Extract the gallery base path (e.g., /photos/ from /photos/thumbnails.php?album=130)
+    // This is important for sites where the gallery is not at the root
+    const pathMatch = parsedUrl.pathname.match(/^(.*\/)[^\/]+\.php$/);
+    this.galleryBasePath = pathMatch ? pathMatch[1] : '/';
+    
+    // Construct proper base URL including gallery path WITH trailing slash
+    // This is crucial for resolving relative URLs like "thumbnails.php?album=X&page=2"
+    this.baseUrl = parsedUrl.origin + this.galleryBasePath;
+    if (!this.baseUrl.endsWith('/')) {
+      this.baseUrl += '/';
+    }
+    
+    console.log(`[Crawler] Initialized with baseUrl: ${this.baseUrl}`);
+    
     this.maxDepth = options.maxDepth || 3;
     this.onProgress = options.onProgress;
     
@@ -316,6 +413,9 @@ export class CoppermineGalleryCrawler {
       try {
         const html = await fetchPage(url);
         const pageType = parsePageType(url);
+        
+        // Debug logging
+        console.log(`[Crawler] Processing ${url} as ${pageType}`);
 
         switch (pageType) {
           case 'category': {
@@ -330,9 +430,42 @@ export class CoppermineGalleryCrawler {
           
           case 'album': {
             const page = await parseAlbumPage(url, html, this.baseUrl);
-            for (const link of page.childLinks || []) {
+            
+            // Prioritize displayimage.php links - add them to the FRONT of the queue
+            // These pages contain the actual full-size image URLs
+            const displayImageLinks = (page.childLinks || []).filter(link => 
+              link.includes('displayimage.php')
+            );
+            const otherLinks = (page.childLinks || []).filter(link => 
+              !link.includes('displayimage.php')
+            );
+            
+            // Add displayimage links first (they give us the real images)
+            for (const link of displayImageLinks) {
+              if (!this.state.visitedUrls.has(link)) {
+                this.state.pendingUrls.unshift(link); // Add to front
+              }
+            }
+            
+            // Then add other links (pagination, sub-albums)
+            for (const link of otherLinks) {
               if (!this.state.visitedUrls.has(link)) {
                 this.state.pendingUrls.push(link);
+              }
+            }
+            
+            // Only use direct image URLs as fallback if no displayimage links found
+            // Some galleries expose full-size images directly without displayimage pages
+            if (displayImageLinks.length === 0 && page.imageUrls && page.imageUrls.length > 0) {
+              for (const imgUrl of page.imageUrls) {
+                if (!this.state.foundImages.includes(imgUrl) && images.length < maxImages) {
+                  images.push({
+                    fullSizeUrl: imgUrl,
+                    pageUrl: url,
+                    title: page.title,
+                  });
+                  this.state.foundImages.push(imgUrl);
+                }
               }
             }
             break;
