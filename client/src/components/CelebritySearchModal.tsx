@@ -24,12 +24,12 @@ interface CrawlJob {
   id: string;
   status: "pending" | "searching" | "crawling" | "downloading" | "completed" | "failed" | "cancelled";
   imagesFound: number;
-  sitesCrawled: number;
-  duplicatesSkipped: number;
-  currentSite?: string;
+  duplicatesRemoved: number;
+  currentSite?: string | null;
   pagesScanned?: number;
   imagesDownloaded?: number;
-  error?: string;
+  discoveredSites?: Array<{ url: string; type: string; confidence: number }>;
+  error?: string | null;
 }
 
 interface CelebritySearchModalProps {
@@ -485,12 +485,12 @@ export function CelebritySearchModal({
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-semibold text-primary-emphasis" data-testid="stat-duplicates-skipped">
-                    {job?.duplicatesSkipped || 0}
+                  <div className="text-2xl font-semibold text-primary-emphasis" data-testid="stat-duplicates-removed">
+                    {job?.duplicatesRemoved || 0}
                   </div>
                   <div className="text-xs text-secondary flex items-center justify-center gap-1">
                     <X className="w-3 h-3" />
-                    Duplicates Skipped
+                    Duplicates Removed
                   </div>
                 </div>
               </div>

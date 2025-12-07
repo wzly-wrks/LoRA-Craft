@@ -41,11 +41,13 @@ const DEFAULT_OPTIONS: Required<Omit<CrawlOptions, 'braveApiKey'>> = {
   maxSites: 5,
 };
 
+const runningJobs = new Map<string, { cancelled: boolean }>();
+
 export async function runCelebritySearch(
   celebrityName: string,
   datasetId: string,
   options: CrawlOptions = {}
-): Promise<CrawlResult> {
+): Promise<{ jobId: string }> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   
   const braveApiKey = opts.braveApiKey || process.env.BRAVE_API_KEY;
@@ -61,7 +63,7 @@ export async function runCelebritySearch(
   const crawlJobData: InsertCrawlJob = {
     datasetId,
     celebrityName,
-    status: 'running',
+    status: 'pending',
     minResolution: opts.minResolution,
     maxImages: opts.maxImages,
     crawlDepth: opts.crawlDepth,
@@ -75,6 +77,26 @@ export async function runCelebritySearch(
   const crawlJob = await storage.createCrawlJob(crawlJobData);
   const jobId = crawlJob.id;
 
+  runningJobs.set(jobId, { cancelled: false });
+
+  executeCrawl(jobId, dataset.workspaceId, celebrityName, datasetId, opts, braveApiKey).catch(console.error);
+
+  return { jobId };
+}
+
+async function executeCrawl(
+  jobId: string,
+  workspaceId: string,
+  celebrityName: string,
+  datasetId: string,
+  opts: Required<Omit<CrawlOptions, 'braveApiKey'>>,
+  braveApiKey: string
+): Promise<CrawlResult> {
+  const jobState = runningJobs.get(jobId);
+  if (!jobState) {
+    return { jobId, status: 'failed', imagesDownloaded: 0, duplicatesRemoved: 0, pagesScanned: 0, sitesDiscovered: 0, error: 'Job not found', imageIds: [] };
+  }
+
   const imageIds: string[] = [];
   const seenHashes = new Set<string>();
   const deduplicator = new ImageDeduplicator(0.92);
@@ -87,15 +109,24 @@ export async function runCelebritySearch(
   try {
     console.log(`[CrawlJob ${jobId}] Starting celebrity search for: ${celebrityName}`);
     
+    await storage.updateCrawlJob(jobId, { status: 'searching' });
+    
     console.log(`[CrawlJob ${jobId}] Discovering fan sites...`);
     const fanSites = await discoverFanSites(celebrityName, braveApiKey, {
       maxSites: opts.maxSites,
     });
 
+    if (jobState.cancelled) {
+      await storage.updateCrawlJob(jobId, { status: 'cancelled' });
+      runningJobs.delete(jobId);
+      return { jobId, status: 'partial', imagesDownloaded: 0, duplicatesRemoved: 0, pagesScanned: 0, sitesDiscovered: 0, error: 'Cancelled by user', imageIds: [] };
+    }
+
     console.log(`[CrawlJob ${jobId}] Found ${fanSites.length} potential fan sites`);
 
     await storage.updateCrawlJob(jobId, {
       discoveredSites: fanSites.map(s => ({ url: s.url, type: s.galleryType, confidence: s.confidence })),
+      status: 'crawling',
     });
 
     if (fanSites.length === 0) {
@@ -116,6 +147,12 @@ export async function runCelebritySearch(
     }
 
     for (const site of fanSites) {
+      if (jobState.cancelled) {
+        await storage.updateCrawlJob(jobId, { status: 'cancelled' });
+        runningJobs.delete(jobId);
+        return { jobId, status: 'partial', imagesDownloaded: totalImagesDownloaded, duplicatesRemoved: totalDuplicatesRemoved, pagesScanned: totalPagesScanned, sitesDiscovered: fanSites.length, error: 'Cancelled by user', imageIds };
+      }
+      
       if (totalImagesDownloaded >= opts.maxImages) {
         console.log(`[CrawlJob ${jobId}] Reached max images limit: ${opts.maxImages}`);
         break;
@@ -145,6 +182,14 @@ export async function runCelebritySearch(
           
           console.log(`[CrawlJob ${jobId}] Found ${foundImages.length} images on ${site.url}`);
           totalImagesFound += foundImages.length;
+
+          if (jobState.cancelled) {
+            await storage.updateCrawlJob(jobId, { status: 'cancelled' });
+            runningJobs.delete(jobId);
+            return { jobId, status: 'partial', imagesDownloaded: totalImagesDownloaded, duplicatesRemoved: totalDuplicatesRemoved, pagesScanned: totalPagesScanned, sitesDiscovered: fanSites.length, error: 'Cancelled by user', imageIds };
+          }
+
+          await storage.updateCrawlJob(jobId, { status: 'downloading', imagesFound: totalImagesFound });
 
           const imageUrls = foundImages.map(img => img.fullSizeUrl);
           
@@ -228,6 +273,8 @@ export async function runCelebritySearch(
       }
     }
 
+    runningJobs.delete(jobId);
+    
     await storage.updateCrawlJob(jobId, {
       status: 'completed',
       pagesScanned: totalPagesScanned,
@@ -235,6 +282,7 @@ export async function runCelebritySearch(
       imagesDownloaded: totalImagesDownloaded,
       duplicatesRemoved: totalDuplicatesRemoved,
       currentSite: null,
+      completedAt: new Date(),
     });
 
     console.log(`[CrawlJob ${jobId}] Completed. Downloaded: ${totalImagesDownloaded}, Duplicates removed: ${totalDuplicatesRemoved}`);
@@ -253,6 +301,8 @@ export async function runCelebritySearch(
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`[CrawlJob ${jobId}] Fatal error:`, error);
 
+    runningJobs.delete(jobId);
+    
     await storage.updateCrawlJob(jobId, {
       status: 'failed',
       error: errorMessage,
@@ -278,13 +328,21 @@ export async function getCrawlJobStatus(jobId: string): Promise<CrawlJob | null>
 
 export async function cancelCrawlJob(jobId: string): Promise<boolean> {
   const job = await storage.getCrawlJob(jobId);
-  if (!job || job.status !== 'running') {
+  if (!job) {
+    return false;
+  }
+  
+  const activeStatuses = ['pending', 'searching', 'crawling', 'downloading'];
+  if (!activeStatuses.includes(job.status)) {
     return false;
   }
 
-  await storage.updateCrawlJob(jobId, {
-    status: 'cancelled',
-  });
+  const jobState = runningJobs.get(jobId);
+  if (jobState) {
+    jobState.cancelled = true;
+  } else {
+    await storage.updateCrawlJob(jobId, { status: 'cancelled' });
+  }
 
   return true;
 }
