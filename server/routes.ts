@@ -671,6 +671,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(TRAINING_PRESETS);
   });
 
+  // Celebrity Search API endpoints
+  app.post("/api/celebrity-search", async (req: Request, res: Response) => {
+    try {
+      const { celebrityName, datasetId, options } = req.body;
+      
+      if (!celebrityName || typeof celebrityName !== 'string') {
+        return res.status(400).json({ error: "Celebrity name is required" });
+      }
+      if (!datasetId || typeof datasetId !== 'string') {
+        return res.status(400).json({ error: "Dataset ID is required" });
+      }
+
+      const { runCelebritySearch } = await import("./celebritySearch");
+      
+      // Run the search asynchronously and return immediately with job ID
+      const result = await runCelebritySearch(celebrityName, datasetId, {
+        maxImages: options?.maxImages || 500,
+        minResolution: options?.minResolution || 300,
+        crawlDepth: options?.crawlDepth || 3,
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error running celebrity search:", error);
+      res.status(500).json({ error: "Failed to run celebrity search" });
+    }
+  });
+
+  app.get("/api/crawl-jobs", async (req: Request, res: Response) => {
+    try {
+      const datasetId = req.query.datasetId as string | undefined;
+      if (storage.getCrawlJobs) {
+        const jobs = await storage.getCrawlJobs(datasetId);
+        res.json(jobs);
+      } else {
+        res.json([]);
+      }
+    } catch (error) {
+      console.error("Error fetching crawl jobs:", error);
+      res.status(500).json({ error: "Failed to fetch crawl jobs" });
+    }
+  });
+
+  app.get("/api/crawl-jobs/:id", async (req: Request, res: Response) => {
+    try {
+      if (storage.getCrawlJob) {
+        const job = await storage.getCrawlJob(req.params.id);
+        if (!job) {
+          return res.status(404).json({ error: "Crawl job not found" });
+        }
+        res.json(job);
+      } else {
+        res.status(404).json({ error: "Crawl jobs not supported" });
+      }
+    } catch (error) {
+      console.error("Error fetching crawl job:", error);
+      res.status(500).json({ error: "Failed to fetch crawl job" });
+    }
+  });
+
+  app.post("/api/crawl-jobs/:id/cancel", async (req: Request, res: Response) => {
+    try {
+      const { cancelCrawlJob } = await import("./celebritySearch");
+      await cancelCrawlJob(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error cancelling crawl job:", error);
+      res.status(500).json({ error: "Failed to cancel crawl job" });
+    }
+  });
+
+  // Discover fan sites for a celebrity (preview before full crawl)
+  app.post("/api/celebrity-search/discover", async (req: Request, res: Response) => {
+    try {
+      const { celebrityName } = req.body;
+      
+      if (!celebrityName || typeof celebrityName !== 'string') {
+        return res.status(400).json({ error: "Celebrity name is required" });
+      }
+
+      // Get Brave API key from settings
+      const braveApiKey = storage.getSetting?.("BRAVE_API_KEY");
+      if (!braveApiKey) {
+        return res.status(400).json({ error: "Brave API key not configured. Please set it in Settings." });
+      }
+
+      const { discoverFanSites } = await import("./celebritySearch/siteDetector");
+      const sites = await discoverFanSites(celebrityName, braveApiKey);
+      
+      res.json({ sites });
+    } catch (error) {
+      console.error("Error discovering fan sites:", error);
+      res.status(500).json({ error: "Failed to discover fan sites" });
+    }
+  });
+
   registerSettingsRoutes(app);
 
   const httpServer = createServer(app);
