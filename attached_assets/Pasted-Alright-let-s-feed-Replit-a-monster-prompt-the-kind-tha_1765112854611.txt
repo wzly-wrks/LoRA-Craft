@@ -1,0 +1,323 @@
+Alright, let’s feed Replit a **monster prompt**—the kind that makes it sit up straight, crack its tiny knuckles, and go, “yep, I know exactly what to build.”
+And since you gave me a *perfect* example domain (taylorpictures.net), I’ll structure this prompt so Replit builds a scraper that can handle **that exact style of gallery** and others like it.
+
+This is the full, premium-grade instruction set. Think of it as the “install this feature + all the glue code + future-proofing” blueprint.
+
+Paste this whole thing into Replit and let it cook.
+
+---
+
+# **THE REPLIT SUPER PROMPT — CELEBRITY SEARCH + FAN-SITE SCRAPER MODULE**
+
+Implement a new system inside LoRA Craft called **Celebrity Search Mode**.
+This system must:
+
+1. Identify celebrity fan galleries via search.
+2. Scrape those galleries automatically.
+3. Clean, dedupe, and tag the images.
+4. Produce a ready-to-train dataset folder.
+
+Use the example site `taylorpictures.net/index.php?cat=0` when building heuristics, because this is a very common gallery structure used by many fan sites.
+
+---
+
+## **1. Overall Feature Goals**
+
+Create a pipeline that works like this:
+
+**User enters a celebrity name**
+→ the system finds fan sites automatically
+→ deep-scrapes them
+→ downloads images
+→ dedupes & filters
+→ extracts metadata
+→ gives the user a polished dataset.
+
+No manual URL hunting.
+No manual page flipping.
+Everything is automatic.
+
+---
+
+# **2. SYSTEM FLOW**
+
+## **Step 1 — Fetch Google result URLs (metadata only)**
+
+We do NOT scrape Google Images.
+We only perform a standard search (via our existing wrapper or Replit plugin) and collect:
+
+* result URLs
+* page titles
+* snippets
+
+From these, we must detect potential fan sites.
+
+---
+
+## **Step 2 — Fan-Site Detection Engine**
+
+From the Google results, detect domains that might contain large celebrity image galleries.
+
+Use heuristics:
+
+### **A. URL keyword scanning**
+
+Look for domains or paths containing:
+
+* gallery
+* pictures
+* photos
+* fans
+* fanphotos
+* hqpics
+* stills
+* images
+* index.php?cat=
+* albums / album / gallery
+* “NAMEpictures”
+* “NAMEgallery”
+
+### **B. Known gallery engines**
+
+Many celeb fan sites use:
+
+* Coppermine Photo Gallery (very common)
+  Structure example:
+  `/index.php?cat=0`
+  `/thumbnails.php?album=####`
+  `/displayimage.php?pid=####`
+
+* Wordpress gallery plugins
+
+* PHP-based image archives
+
+* Simple HTML grids
+
+### **C. HTML analysis**
+
+When crawling the candidate homepage:
+
+* Count `<img>` tags
+* Look for categories / albums
+* Look for pagination
+* Detect gallery navigation links (“Albums”, “Categories”, “Last uploads”, etc.)
+
+Return the **top 1–3 domains** ordered by gallery-likelihood.
+
+---
+
+## **Step 3 — Deep-Scraping Engine**
+
+This is the heart of the module.
+
+Build a **recursive, resilient scraper** that can handle structures like:
+
+### **Coppermine-style galleries (e.g., taylorpictures.net)**
+
+Pages to crawl:
+
+`index.php?cat=0` → category list
+`index.php?cat=X` → deeper categories
+`thumbnails.php?album=X` → list of thumbnails
+`displayimage.php?pid=XXXX` → image pages with the full-size image
+
+Your scraper must:
+
+* Detect categories
+* Follow every category link
+* Detect albums
+* Follow album links
+* Detect thumbnail grids
+* Extract actual full-size image URL
+* Handle pagination automatically
+* Stop infinite loops
+* Avoid downloading duplicates
+* Ignore tiny thumbnails (under ~300px)
+
+**This exact structure must be supported.**
+
+---
+
+### **General scraping rules:**
+
+* Use asynchronous HTTP requests (httpx or aiohttp).
+* Handle rate limits + polite delays (0.5–1.5s randomized).
+* Retry failures.
+* Avoid JS rendering unless absolutely necessary.
+* Store all discovered image URLs before downloading.
+
+---
+
+## **Step 4 — Image Downloading**
+
+When URLs are collected:
+
+* Download asynchronously
+* Save to:
+  `/datasets/<celeb>/images/`
+* Skip anything under 300px
+* Verify file integrity
+* Skip corrupt files
+
+---
+
+## **Step 5 — Deduplication Layer (pHash)**
+
+Implement perceptual hashing using:
+
+`imagehash.phash()`
+or
+`dhash()`
+or
+`whash()`
+
+Deduplicate by comparing hash values within a reasonable tolerance.
+
+Also dedupe based on filename patterns like:
+
+* “image_xxx.jpg” vs “image_xxx~0.jpg”
+* duplicates from multiple pages
+
+Keep the highest resolution version.
+
+---
+
+## **Step 6 — Metadata Extraction**
+
+For each downloaded image:
+
+* extract file resolution
+* extract originating page title
+* extract album/category names
+* detect contextual keywords in surrounding HTML such as:
+
+  * event names
+  * years
+  * show titles
+  * movie names
+  * magazine names
+  * photoshoot keywords
+  * red carpet / candid indicators
+
+Store in:
+
+`/datasets/<celeb>/metadata.json`
+
+Structure example:
+
+```
+{
+  "image001.jpg": {
+    "source": "taylorpictures.net/displayimage.php?pid=44232",
+    "resolution": [2048, 1536],
+    "tags": ["event:Met Gala", "year:2019", "editorial"]
+  },
+  ...
+}
+```
+
+---
+
+## **Step 7 — Final Dataset Output**
+
+UI should receive:
+
+* dataset path
+* metadata path
+* preview image sample
+* total images found
+* total images kept
+* duplicates removed
+* domains scraped
+
+export via a single function:
+
+```
+run_celebrity_search(celeb_name: str) -> Dict
+```
+
+Return fields:
+
+```
+{
+  "status": "success",
+  "celeb": "Taylor Swift",
+  "detected_sites": [...],
+  "image_count": 8421,
+  "duplicate_count": 298,
+  "dataset_path": "...",
+  "metadata_path": "...",
+  "previews": ["path/to/img1.jpg", "path/to/img2.jpg"]
+}
+```
+
+---
+
+# **3. Technical Expectations**
+
+Use:
+
+* Python
+* httpx or aiohttp
+* BeautifulSoup4
+* selectolax (preferred — much faster than BS4)
+* imagehash
+* Pillow
+* asyncio
+* Tenacity (optional retry logic)
+
+Create a modular folder:
+
+```
+celebrity_search/
+    __init__.py
+    detective.py        # find fan sites from Google metadata
+    scraper.py          # handles deep crawling
+    downloader.py       # async image downloader
+    dedupe.py           # pHash logic
+    metadata.py         # tag extraction
+    pipeline.py         # orchestrates entire flow
+```
+
+Pipeline should be simple to call and easy to expand later.
+
+---
+
+# **4. SPECIAL NOTE — MAKE SURE IT WORKS ON THIS URL**
+
+`taylorpictures.net/index.php?cat=0`
+
+This is your baseline.
+If the scraper works here, it will work for 80% of all celebrity fan galleries.
+
+Support:
+
+* category pages
+* album pages
+* thumbnails
+* deep image pages
+* pagination
+* full-size image extraction
+
+---
+
+# **5. Additional Nice-to-Haves (implement if easy)**
+
+* Cache downloaded pages to avoid duplicate crawling.
+* A user setting for min resolution.
+* A toggle for "paparazzi only" or "editorial only" if metadata supports it.
+* Progress reporting to UI via stream or websocket.
+* Option to limit image count (e.g., "first 500 images").
+
+---
+
+That’s the full Replit-side blueprint.
+Hand this to your AI builder and it should construct a *beast* of a celebrity scraping system—built specifically to devour gallery-style sites like TaylorPictures and their cousins.
+
+If you want, I can also generate:
+• starter skeleton code
+• sample scraper functions
+• parsing logic for Coppermine galleries
+• unit tests for URL detection
+
+Just send the word and I’ll forge it.
