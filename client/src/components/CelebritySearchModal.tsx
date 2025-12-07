@@ -91,6 +91,8 @@ export function CelebritySearchModal({
     setMinResolution("300");
     setCrawlDepth("3");
     setShowOptions(false);
+    setIsImporting(false);
+    setImportResult(null);
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
@@ -111,6 +113,28 @@ export function CelebritySearchModal({
     };
   }, []);
 
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{ imported: number; failed: number } | null>(null);
+
+  const importCachedImages = useCallback(async (id: string) => {
+    if (!datasetId) return { imported: 0, failed: 0 };
+    
+    setIsImporting(true);
+    try {
+      const res = await apiRequest("POST", `/api/crawl-jobs/${id}/import`, {
+        datasetId,
+      });
+      const result = await res.json();
+      setImportResult(result);
+      return result;
+    } catch (err) {
+      console.error("Error importing cached images:", err);
+      return { imported: 0, failed: 0 };
+    } finally {
+      setIsImporting(false);
+    }
+  }, [datasetId]);
+
   const pollJobStatus = useCallback(async (id: string) => {
     try {
       const res = await fetch(`/api/crawl-jobs/${id}`, {
@@ -128,9 +152,10 @@ export function CelebritySearchModal({
         setIsCrawling(false);
         
         if (data.status === "completed") {
+          const importRes = await importCachedImages(id);
           toast({
-            title: "Crawl completed",
-            description: `Downloaded ${data.imagesDownloaded || data.imagesFound} images`,
+            title: "Images imported",
+            description: `Added ${importRes.imported} images to your dataset`,
           });
           onImagesAdded();
         } else if (data.status === "failed") {
@@ -140,7 +165,7 @@ export function CelebritySearchModal({
     } catch (err) {
       console.error("Error polling job status:", err);
     }
-  }, [toast, onImagesAdded]);
+  }, [toast, onImagesAdded, importCachedImages]);
 
   const handleDiscover = async () => {
     if (!celebrityName.trim()) {
@@ -264,7 +289,7 @@ export function CelebritySearchModal({
     return Math.min(100, ((job.imagesDownloaded || job.imagesFound || 0) / maxImg) * 100);
   };
 
-  const canClose = !isCrawling || (job && ["completed", "failed", "cancelled"].includes(job.status));
+  const canClose = !isImporting && (!isCrawling || (job && ["completed", "failed", "cancelled"].includes(job.status)));
 
   return (
     <Modal
@@ -442,9 +467,13 @@ export function CelebritySearchModal({
           <>
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                {job?.status && ["completed", "failed", "cancelled"].includes(job.status) ? (
-                  job.status === "completed" ? (
+                {isImporting ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-pink-500" />
+                ) : job?.status && ["completed", "failed", "cancelled"].includes(job.status) ? (
+                  importResult ? (
                     <Check className="w-6 h-6 text-green-500" />
+                  ) : job.status === "completed" ? (
+                    <Loader2 className="w-6 h-6 animate-spin text-pink-500" />
                   ) : (
                     <AlertCircle className="w-6 h-6 text-destructive" />
                   )
@@ -453,9 +482,11 @@ export function CelebritySearchModal({
                 )}
                 <div>
                   <div className="text-sm text-primary-emphasis font-medium">
-                    {STATUS_LABELS[job?.status || "pending"]}
+                    {isImporting ? "Importing images to dataset..." : 
+                     importResult ? `Imported ${importResult.imported} images` :
+                     STATUS_LABELS[job?.status || "pending"]}
                   </div>
-                  {job?.currentSite && (
+                  {job?.currentSite && !importResult && (
                     <div className="text-xs text-tertiary truncate max-w-[400px]">
                       {job.currentSite}
                     </div>
@@ -463,16 +494,16 @@ export function CelebritySearchModal({
                 </div>
               </div>
 
-              <Progress value={getProgressPercent()} className="h-2" data-testid="crawl-progress" />
+              <Progress value={importResult ? 100 : getProgressPercent()} className="h-2" data-testid="crawl-progress" />
 
               <div className="grid grid-cols-3 gap-4 p-4 rounded-md surface-2">
                 <div className="text-center">
-                  <div className="text-2xl font-semibold text-primary-emphasis" data-testid="stat-images-found">
-                    {job?.imagesFound || 0}
+                  <div className="text-2xl font-semibold text-primary-emphasis" data-testid="stat-images-downloaded">
+                    {importResult ? importResult.imported : (job?.imagesDownloaded || 0)}
                   </div>
                   <div className="text-xs text-secondary flex items-center justify-center gap-1">
                     <ImageIcon className="w-3 h-3" />
-                    Images Found
+                    {importResult ? "Images Imported" : "Images Downloaded"}
                   </div>
                 </div>
                 <div className="text-center">
@@ -546,7 +577,16 @@ export function CelebritySearchModal({
 
         {step === "progress" && (
           <>
-            {job?.status && !["completed", "failed", "cancelled"].includes(job.status) ? (
+            {isImporting ? (
+              <Button
+                disabled
+                className="accent-pink transition-smooth"
+                data-testid="button-importing"
+              >
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Importing...
+              </Button>
+            ) : job?.status && !["completed", "failed", "cancelled"].includes(job.status) ? (
               <Button
                 variant="destructive"
                 onClick={handleCancel}
