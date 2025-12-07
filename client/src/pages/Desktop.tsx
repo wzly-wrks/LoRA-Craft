@@ -5,6 +5,7 @@ import { ImageGrid } from "@/components/ImageGrid";
 import { DetailPanel } from "@/components/DetailPanel";
 import { DatasetToolbar } from "@/components/DatasetToolbar";
 import { WebSearchModal } from "@/components/WebSearchModal";
+import { CelebritySearchModal } from "@/components/CelebritySearchModal";
 import { useWorkspaces, useCreateWorkspace, useDeleteWorkspace } from "@/hooks/useWorkspaces";
 import { useDatasets, useCreateDataset, useDeleteDataset } from "@/hooks/useDatasets";
 import { useImages, useImage } from "@/hooks/useImages";
@@ -16,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Dataset } from "@shared/schema";
 
-type ModalType = "workspace" | "dataset" | "web-search" | null;
+type ModalType = "workspace" | "dataset" | "web-search" | "celebrity-search" | null;
 
 export const Desktop = (): JSX.Element => {
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>();
@@ -262,6 +263,7 @@ export const Desktop = (): JSX.Element => {
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             onWebSearch={() => setModalType("web-search")}
+            onCelebritySearch={() => setModalType("celebrity-search")}
             onCreateDataset={selectedWorkspaceId ? () => setModalType("dataset") : undefined}
           />
           <div className="flex-1 min-h-0 overflow-auto">
@@ -401,6 +403,15 @@ export const Desktop = (): JSX.Element => {
       {/* Web Search Modal */}
       <WebSearchModal
         isOpen={modalType === "web-search"}
+        onClose={handleCloseModal}
+        datasetId={selectedDatasetId}
+        workspaceId={selectedWorkspaceId}
+        onImagesAdded={() => refetchImages()}
+      />
+
+      {/* Celebrity Search Modal */}
+      <CelebritySearchModal
+        isOpen={modalType === "celebrity-search"}
         onClose={handleCloseModal}
         datasetId={selectedDatasetId}
         workspaceId={selectedWorkspaceId}

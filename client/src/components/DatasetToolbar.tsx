@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SearchIcon, FilterIcon, Copy, Download, Loader2, Wand2, Globe, PlusIcon } from "lucide-react";
+import { SearchIcon, FilterIcon, Copy, Download, Loader2, Wand2, Globe, PlusIcon, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +36,7 @@ interface DatasetToolbarProps {
   onSearchChange: (query: string) => void;
   onFilterChange?: (filters: ImageFilters) => void;
   onWebSearch?: () => void;
+  onCelebritySearch?: () => void;
   onCreateDataset?: () => void;
 }
 
@@ -72,6 +73,7 @@ export function DatasetToolbar({
   onSearchChange,
   onFilterChange,
   onWebSearch,
+  onCelebritySearch,
   onCreateDataset,
 }: DatasetToolbarProps) {
   const [exportId, setExportId] = useState<string | null>(null);
@@ -375,6 +377,20 @@ export function DatasetToolbar({
           title="Search web for images"
         >
           <Globe className="w-5 h-5 text-secondary" />
+        </Button>
+      )}
+
+      {onCelebritySearch && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onCelebritySearch}
+          className="surface-3 rounded-md interactive transition-smooth"
+          disabled={!selectedDatasetId}
+          data-testid="button-celebrity-search"
+          title="Search celebrity fan sites"
+        >
+          <Star className="w-5 h-5 text-secondary" />
         </Button>
       )}
 
