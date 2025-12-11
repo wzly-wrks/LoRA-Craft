@@ -1,24 +1,58 @@
 import OpenAI from "openai";
-import { objectStorageService } from "./objectStorage";
+import { storageAdapter } from "./storageAdapter";
+import fs from "fs";
+import path from "path";
+
+const isElectron = process.env.ELECTRON_APP === 'true';
+
+// Read settings from local file (same as settingsRoutes.ts)
+function getSettingsFilePath(): string {
+  return path.join(process.cwd(), 'data', 'settings.json');
+}
+
+function getOpenAIKeyFromSettings(): string {
+  if (!isElectron) {
+    return process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+  }
+  
+  try {
+    const settingsPath = getSettingsFilePath();
+    if (fs.existsSync(settingsPath)) {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+      if (settings.openai?.apiKey) {
+        return settings.openai.apiKey;
+      }
+    }
+  } catch (error) {
+    console.error('Error reading OpenAI key from settings:', error);
+  }
+  
+  // Fallback to environment variables
+  return process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY || '';
+}
 
 let openai: OpenAI | null = null;
 
 function getOpenAI(): OpenAI {
+  const apiKey = getOpenAIKeyFromSettings();
+  
+  if (!apiKey) {
+    throw new Error("OpenAI API key not configured. Set it in Settings or use OPENAI_API_KEY environment variable.");
+  }
+  
+  // Recreate client if key changed or doesn't exist
   if (!openai) {
-    const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error("OpenAI API key not configured. Set OPENAI_API_KEY or AI_INTEGRATIONS_OPENAI_API_KEY environment variable.");
-    }
     openai = new OpenAI({
       baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
       apiKey,
     });
   }
+  
   return openai;
 }
 
 export async function generateCaption(storageKey: string): Promise<string> {
-  const buffer = await objectStorageService.downloadToBuffer(storageKey);
+  const buffer = await storageAdapter.getBuffer(storageKey);
   const base64Image = buffer.toString("base64");
   
   const mimeType = storageKey.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
@@ -66,7 +100,7 @@ Guidelines for captions:
 }
 
 export async function generateTags(storageKey: string): Promise<string[]> {
-  const buffer = await objectStorageService.downloadToBuffer(storageKey);
+  const buffer = await storageAdapter.getBuffer(storageKey);
   const base64Image = buffer.toString("base64");
   
   const mimeType = storageKey.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
