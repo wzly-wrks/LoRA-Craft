@@ -3,9 +3,15 @@ import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
 import type { Workspace, Dataset, Image, Export, Task, CrawlJob, InsertWorkspace, InsertDataset, InsertImage, InsertExport, InsertTask, InsertCrawlJob } from '@shared/schema';
+import { getDatabasePath, ensureAppDataDir } from './appPaths';
 
 const isElectron = process.env.ELECTRON_APP === 'true';
-const dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'lora-craft.db');
+
+// Ensure app data directory exists
+ensureAppDataDir();
+
+const dbPath = getDatabasePath();
+console.log(`[LocalDatabase] Using database path: ${dbPath}`);
 
 const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {

@@ -2,8 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import type { Response } from 'express';
+import { getStoragePath } from './appPaths';
 
-const storagePath = process.env.STORAGE_PATH || path.join(process.cwd(), 'data', 'storage');
+const storagePath = getStoragePath();
 
 const directories = ['images', 'thumbnails', 'exports'];
 directories.forEach(dir => {

@@ -1,14 +1,9 @@
 import OpenAI from "openai";
 import { storageAdapter } from "./storageAdapter";
 import fs from "fs";
-import path from "path";
+import { getSettingsPath } from "./appPaths";
 
 const isElectron = process.env.ELECTRON_APP === 'true';
-
-// Read settings from local file (same as settingsRoutes.ts)
-function getSettingsFilePath(): string {
-  return path.join(process.cwd(), 'data', 'settings.json');
-}
 
 function getOpenAIKeyFromSettings(): string {
   if (!isElectron) {
@@ -16,7 +11,7 @@ function getOpenAIKeyFromSettings(): string {
   }
   
   try {
-    const settingsPath = getSettingsFilePath();
+    const settingsPath = getSettingsPath();
     if (fs.existsSync(settingsPath)) {
       const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
       if (settings.openai?.apiKey) {

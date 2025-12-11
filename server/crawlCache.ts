@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
+import { getCrawlCachePath } from './appPaths';
 
 // Temp directory for crawled images before user confirms import
-const CACHE_DIR = process.env.CRAWL_CACHE_PATH || path.join(process.cwd(), 'data', 'crawl-cache');
+const CACHE_DIR = getCrawlCachePath();
 
 // Ensure cache directory exists
 if (!fs.existsSync(CACHE_DIR)) {
